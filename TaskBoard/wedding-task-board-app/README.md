@@ -1,6 +1,6 @@
-# Wedding Task Board
+# Simple Task Board
 
-Cloudflare Pages + Firebase Auth/Firestore の無料枠で動かす、夫婦・家族向けタスクボードです。
+Cloudflare Pages + Firebase Auth/Firestore の無料枠で動かす、一人でも、友人や家族とでも使える共有タスクボードです。
 
 ## セットアップ
 

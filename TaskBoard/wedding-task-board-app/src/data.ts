@@ -18,6 +18,7 @@ import type { User } from 'firebase/auth';
 import { db } from './firebase';
 import { createSampleTasks, defaultSettings } from './sampleData';
 import type { BackupData, Board, BoardSettings, Invite, Task } from './types';
+import type { LocalState } from './localStore';
 
 const now = () => Date.now();
 
@@ -83,6 +84,8 @@ export const createBoard = async (user: User, title: string, seedSamples = false
   const createdAt = now();
   const newBoard: Omit<Board, 'id'> = {
     title,
+    kind: 'board',
+    sourceBoardIds: [],
     ownerId: user.uid,
     memberIds: [],
     memberEmails: [],
@@ -98,6 +101,25 @@ export const createBoard = async (user: User, title: string, seedSamples = false
     createSampleTasks().forEach((task) => batch.set(doc(tasksRef(created.id)), task));
   }
   await batch.commit();
+  return created.id;
+};
+
+export const createAggregateBoard = async (user: User, title: string, sourceBoardIds: string[]) => {
+  const createdAt = now();
+  const newBoard: Omit<Board, 'id'> = {
+    title,
+    kind: 'aggregate',
+    sourceBoardIds,
+    ownerId: user.uid,
+    memberIds: [],
+    memberEmails: [],
+    visibility: 'private',
+    createdAt,
+    updatedAt: createdAt,
+    archivedAt: null,
+  };
+  const created = await addDoc(collection(db, 'boards'), newBoard);
+  await setDoc(settingsRef(created.id), defaultSettings);
   return created.id;
 };
 
@@ -142,6 +164,28 @@ export const updateTask = async (boardId: string, taskId: string, updates: Parti
 export const hardDeleteTask = async (boardId: string, taskId: string) => {
   await deleteDoc(doc(tasksRef(boardId), taskId));
   await updateBoard(boardId, {});
+};
+
+export const removeBoardMember = async (board: Board, uid: string, email: string) => {
+  const memberIds = (board.memberIds || []).filter((item) => item !== uid);
+  const memberEmails = (board.memberEmails || []).filter((item) => item !== email.toLowerCase());
+  await updateBoard(board.id, {
+    memberIds,
+    memberEmails,
+    visibility: memberIds.length || memberEmails.length ? 'shared' : 'private',
+  });
+};
+
+export const leaveBoard = async (board: Board, user: User) => {
+  const uid = user.uid;
+  const email = (user.email || '').toLowerCase();
+  const memberIds = (board.memberIds || []).filter((item) => item !== uid);
+  const memberEmails = (board.memberEmails || []).filter((item) => item !== email);
+  await updateBoard(board.id, {
+    memberIds,
+    memberEmails,
+    visibility: memberIds.length || memberEmails.length ? 'shared' : 'private',
+  });
 };
 
 export const sendInvite = async (board: Board, email: string, user: User) => {
@@ -208,6 +252,39 @@ export const restoreBackup = async (boardId: string, data: BackupData, mode: 'ap
   });
   await batch.commit();
   await updateBoard(boardId, {});
+};
+
+export const importLocalStateToFirebase = async (user: User, localState: LocalState) => {
+  const createdIds: string[] = [];
+  for (const localBoard of localState.boards.filter((board) => (board.kind || 'board') === 'board')) {
+    const createdAt = now();
+    const { id: _localBoardId, ...localBoardData } = localBoard;
+    const newBoard: Omit<Board, 'id'> = {
+      ...localBoardData,
+      kind: 'board',
+      sourceBoardIds: [],
+      ownerId: user.uid,
+      memberIds: [],
+      memberEmails: [],
+      visibility: 'private',
+      createdAt,
+      updatedAt: createdAt,
+      archivedAt: localBoard.archivedAt ?? null,
+    };
+    const created = await addDoc(collection(db, 'boards'), newBoard);
+    createdIds.push(created.id);
+    const batch = writeBatch(db);
+    batch.set(settingsRef(created.id), localState.settingsByBoard[localBoard.id] || defaultSettings);
+    (localState.tasksByBoard[localBoard.id] || []).forEach((task) => {
+      const { id, sourceBoardId, sourceBoardTitle, ...taskData } = task;
+      batch.set(doc(tasksRef(created.id), id || crypto.randomUUID()), {
+        ...taskData,
+        updatedAt: now(),
+      });
+    });
+    await batch.commit();
+  }
+  return createdIds;
 };
 
 export const hasAnyBoard = async (userId: string) => {

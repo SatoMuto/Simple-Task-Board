@@ -1,5 +1,6 @@
 export type Visibility = 'private' | 'shared';
 export type AppTab = 'board' | 'calendar' | 'search' | 'settings';
+export type BoardKind = 'board' | 'aggregate';
 
 export type StatusColumn = {
   id: string;
@@ -24,6 +25,8 @@ export type Subtask = {
 export type Board = {
   id: string;
   title: string;
+  kind?: BoardKind;
+  sourceBoardIds?: string[];
   ownerId: string;
   memberIds: string[];
   memberEmails: string[];
@@ -36,8 +39,36 @@ export type Board = {
 export type BoardSettings = {
   assignees: Assignee[];
   statuses: StatusColumn[];
+  deletedAssignees?: Assignee[];
+  deletedStatuses?: StatusColumn[];
+  recurrenceRules?: RecurrenceRule[];
+  deletedRecurrenceRules?: RecurrenceRule[];
   autoArchiveDone: boolean;
   defaultCollapsed: boolean;
+  darkMode?: boolean;
+  notificationsEnabled?: boolean;
+  browserNotificationsEnabled?: boolean;
+  notifyOverdue?: boolean;
+  notifyToday?: boolean;
+  notifyTomorrow?: boolean;
+};
+
+export type RecurrenceRule = {
+  id: string;
+  title: string;
+  statusId: string;
+  assigneeIds: string[];
+  priority: number;
+  memo: string;
+  subtasks: Subtask[];
+  scheduleType: 'daily' | 'weekly' | 'monthly';
+  time: string;
+  weekdays?: number[];
+  dayOfMonth?: number;
+  enabled: boolean;
+  createdAt: number;
+  updatedAt: number;
+  lastGeneratedAt: number;
 };
 
 export type Task = {
@@ -54,6 +85,10 @@ export type Task = {
   completedAt?: number | null;
   deletedAt?: number | null;
   archivedAt?: number | null;
+  recurrenceRuleId?: string;
+  recurrenceOccurrenceAt?: number;
+  sourceBoardId?: string;
+  sourceBoardTitle?: string;
 };
 
 export type Invite = {

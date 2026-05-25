@@ -70,3 +70,78 @@ textarea {
   border: 3px solid var(--range-color, #111827);
   background: white;
 }
+
+.app-dark {
+  background: #111827;
+  color: #e5e7eb;
+}
+
+.app-dark .bg-\[\#fafafa\],
+.app-dark.bg-\[\#fafafa\] {
+  background: #111827;
+}
+
+.app-dark .bg-\[\#fafafa\]\/95 {
+  background-color: rgba(17, 24, 39, 0.95);
+}
+
+.app-dark .bg-white,
+.app-dark .bg-white\/95 {
+  background-color: #1f2937;
+}
+
+.app-dark .bg-gray-50,
+.app-dark .bg-gray-50\/50,
+.app-dark .bg-gray-50\/70,
+.app-dark .bg-gray-100 {
+  background-color: #273244;
+}
+
+.app-dark .bg-gray-200 {
+  background-color: #374151;
+}
+
+.app-dark .hover\:bg-gray-50:hover,
+.app-dark .hover\:bg-gray-100:hover {
+  background-color: #273244;
+}
+
+.app-dark .border-gray-100,
+.app-dark .border-gray-200,
+.app-dark .border-gray-300 {
+  border-color: #374151;
+}
+
+.app-dark .text-gray-900,
+.app-dark .text-gray-800,
+.app-dark .text-gray-700 {
+  color: #f3f4f6;
+}
+
+.app-dark .text-gray-600,
+.app-dark .text-gray-500 {
+  color: #cbd5e1;
+}
+
+.app-dark .text-gray-400 {
+  color: #94a3b8;
+}
+
+.app-dark input,
+.app-dark textarea,
+.app-dark select {
+  background-color: #1f2937;
+  color: #f3f4f6;
+}
+
+.app-dark input::placeholder,
+.app-dark textarea::placeholder {
+  color: #94a3b8;
+}
+
+.app-dark .shadow-sm,
+.app-dark .shadow-lg,
+.app-dark .shadow-xl,
+.app-dark .shadow-2xl {
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.28);
+}

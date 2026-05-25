@@ -13,7 +13,7 @@ export type LocalState = {
 export const guestUser = {
   uid: LOCAL_USER_ID,
   email: '',
-  displayName: 'ログインなしユーザー',
+  displayName: '未ログインユーザー',
   photoURL: '',
   isGuest: true,
 };
@@ -51,6 +51,8 @@ export const createLocalBoard = (state: LocalState, title: string, seedSamples: 
   const board: Board = {
     id: boardId,
     title,
+    kind: 'board',
+    sourceBoardIds: [],
     ownerId: LOCAL_USER_ID,
     memberIds: [],
     memberEmails: [],
