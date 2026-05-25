@@ -1,0 +1,17 @@
+{
+  "name": "Wedding Task Board",
+  "short_name": "Task Board",
+  "description": "夫婦や家族で使える共有タスクボード",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#fafafa",
+  "theme_color": "#111827",
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

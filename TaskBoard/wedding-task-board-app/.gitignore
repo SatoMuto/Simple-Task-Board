@@ -1,0 +1,9 @@
+node_modules
+dist
+.env
+.env.local
+.firebase
+firebase-debug.log
+*.tsbuildinfo
+vite.config.d.ts
+tailwind.config.d.ts
