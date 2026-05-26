@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type CSSProperties, type FormEvent, type PointerEvent, type TouchEvent } from 'react';
+import { useEffect, useRef, useState, type CSSProperties, type DragEvent, type FormEvent, type PointerEvent, type TouchEvent } from 'react';
 import {
   Archive,
   Bell,
@@ -795,6 +795,7 @@ function TaskCard({
   const [taskRecurrenceTime, setTaskRecurrenceTime] = useState('09:00');
   const [taskRecurrenceWeekdays, setTaskRecurrenceWeekdays] = useState<number[]>([new Date().getDay()]);
   const [taskRecurrenceDayOfMonth, setTaskRecurrenceDayOfMonth] = useState(new Date().getDate());
+  const [isDragging, setIsDragging] = useState(false);
   const dueDateInputRef = useRef<HTMLInputElement | null>(null);
 
   useEffect(() => {
@@ -876,10 +877,22 @@ function TaskCard({
     setIsActionMenuOpen(false);
   };
 
+  const startCardDrag = () => {
+    if (readOnly || disableStatus) return;
+    setIsDragging(true);
+    onDragStart(task.id);
+  };
+
   return (
-    <article id={`task-${task.id}`} className={`bg-white border border-gray-200 rounded-xl p-3 shadow-sm flex flex-col gap-2.5 relative transition-[box-shadow,background-color] ${highlighted ? 'z-10 bg-gray-50 ring-2 ring-inset ring-gray-700 shadow-md' : ''}`}>
+    <article
+      id={`task-${task.id}`}
+      draggable={!readOnly && !disableStatus}
+      onDragStart={startCardDrag}
+      onDragEnd={() => setIsDragging(false)}
+      className={`task-drag-card bg-white border border-gray-200 rounded-xl p-3 shadow-sm flex flex-col gap-2.5 relative transition-[box-shadow,background-color,opacity,transform] ${!readOnly && !disableStatus ? 'md:cursor-grab md:active:cursor-grabbing' : ''} ${isDragging ? 'is-dragging' : ''} ${highlighted ? 'z-10 bg-gray-50 ring-2 ring-inset ring-gray-700 shadow-md' : ''}`}
+    >
       <div className="flex justify-between items-start gap-2 relative">
-        <div draggable={!readOnly && !disableStatus} onDragStart={() => !readOnly && !disableStatus && onDragStart(task.id)} className={`p-1 -ml-1 -mt-1 rounded hidden md:block ${readOnly || disableStatus ? 'text-gray-200' : 'cursor-grab active:cursor-grabbing text-gray-300 hover:text-gray-500'}`} title={readOnly || disableStatus ? 'この画面ではステータス移動できません' : 'ドラッグして移動'}>
+        <div className={`p-1 -ml-1 -mt-1 rounded hidden md:block ${readOnly || disableStatus ? 'text-gray-200' : 'text-gray-300 hover:text-gray-500'}`} title={readOnly || disableStatus ? 'この画面ではステータス移動できません' : 'ドラッグして移動'}>
           <GripVertical size={20} />
         </div>
         <div className="flex-1 relative">
@@ -1048,7 +1061,7 @@ function TaskCard({
 
       <SelectSheet label="ステータス" value={task.statusId} options={statusOptions.map((status) => ({ value: status.id, label: status.title, color: status.color }))} onChange={(nextValue) => !readOnly && !disableStatus && onUpdate(task.id, { statusId: nextValue })} disabled={readOnly || disableStatus} />
 
-      <div className="grid grid-cols-[minmax(96px,1.25fr)_76px_minmax(88px,1fr)] gap-1.5">
+      <div className="grid grid-cols-[minmax(0,1fr)_minmax(68px,76px)_minmax(0,0.9fr)] gap-1.5">
         <div className="min-w-0">
           <SelectSheet label="担当" value={currentAssigneeId} options={[{ value: '', label: '未設定' }, ...settings.assignees.map((assignee) => ({ value: assignee.id, label: assignee.name, color: assignee.color }))]} onChange={(nextValue) => !readOnly && onUpdate(task.id, { assigneeIds: nextValue ? [nextValue] : [] })} disabled={readOnly} />
         </div>
@@ -1061,12 +1074,12 @@ function TaskCard({
           </button>
         </div>
 
-        <div className="relative min-w-0">
+        <div className="relative min-w-0 overflow-hidden">
           <div className="flex h-[30px] items-center gap-1.5 rounded-md border border-gray-300 bg-white px-2 shadow-sm">
-          <button type="button" disabled={readOnly} className="flex-1 h-2.5 bg-gray-200 rounded-full overflow-hidden cursor-pointer hover:ring-2 hover:ring-gray-300 transition-all text-left disabled:cursor-default disabled:hover:ring-0" onClick={() => { if (!readOnly) { setIsEditingPriority(true); setTempPriority(currentPriority); } }} title={`優先度: ${currentPriority}`}>
+          <button type="button" disabled={readOnly} className="min-w-0 flex-1 h-2.5 bg-gray-200 rounded-full overflow-hidden cursor-pointer hover:ring-2 hover:ring-gray-300 transition-all text-left disabled:cursor-default disabled:hover:ring-0" onClick={() => { if (!readOnly) { setIsEditingPriority(true); setTempPriority(currentPriority); } }} title={`優先度: ${currentPriority}`}>
             <div className="h-full transition-all duration-300 ease-out" style={{ width: `${currentPriority}%`, backgroundColor: priorityColor(currentPriority) }} />
           </button>
-          <span className="text-[10px] sm:text-xs font-bold w-5 sm:w-6 shrink-0 text-right" style={{ color: priorityColor(currentPriority) }}>{currentPriority}</span>
+          <span className="text-[10px] sm:text-xs font-bold w-4 sm:w-5 shrink-0 text-right" style={{ color: priorityColor(currentPriority) }}>{currentPriority}</span>
           </div>
           {isEditingPriority ? (
             <>
@@ -1237,14 +1250,22 @@ function SortSheetTrigger({ value, onChange }: { value: string; onChange: (value
 }
 
 function DateFilterButton({ label, value, onChange }: { label: string; value: string; onChange: (value: string) => void }) {
+  const inputRef = useRef<HTMLInputElement | null>(null);
+  const openDatePicker = () => {
+    const input = inputRef.current;
+    if (input?.showPicker) input.showPicker();
+    else input?.click();
+    input?.focus();
+  };
+
   return (
     <div>
       <label className="mb-1 ml-1 block text-[10px] font-bold text-gray-500">{label}</label>
-      <div className="relative flex h-[42px] w-full items-center justify-center gap-1.5 rounded-lg border border-gray-300 bg-white px-2 text-sm font-medium text-gray-600 shadow-sm">
+      <button type="button" onClick={openDatePicker} className="relative flex h-[42px] w-full items-center justify-center gap-1.5 rounded-lg border border-gray-300 bg-white px-2 text-sm font-medium text-gray-600 shadow-sm hover:bg-gray-50">
         <Calendar size={15} className="text-gray-400" />
         <span>{value ? dateLabel(value).replace(/\(.+\)/, '') : '未設定'}</span>
-        <input type="date" value={value} onChange={(event) => onChange(event.target.value)} className="absolute inset-0 h-full w-full cursor-pointer opacity-0" aria-label={label} />
-      </div>
+        <input ref={inputRef} type="date" value={value} onChange={(event) => onChange(event.target.value)} className="pointer-events-none absolute h-px w-px opacity-0" tabIndex={-1} aria-label={label} />
+      </button>
     </div>
   );
 }
@@ -1397,27 +1418,27 @@ function AddTaskForm({ settings, onAdd, onCreateRecurrence, prefillDueDate, focu
         <div className="collapsible-inner">
         <form onSubmit={submit} className="rounded-b-xl border-t border-gray-200 p-4 sm:p-5">
           <div className="flex flex-col gap-3 sm:gap-4">
-            <div className="flex items-end gap-2 sm:gap-4">
-              <div className="min-w-0 flex-1">
+            <div className="grid grid-cols-[minmax(0,1fr)_110px] items-end gap-2 sm:grid-cols-[minmax(0,1fr)_130px] sm:gap-4 md:grid-cols-[minmax(0,1fr)_140px_132px]">
+              <div className="min-w-0">
                 <label className="mb-1 ml-1 block text-[10px] font-bold text-gray-500">タイトル</label>
                 <input ref={titleInputRef} value={title} onChange={(event) => setTitle(event.target.value)} placeholder="タスクのタイトルを入力..." className="h-[42px] w-full rounded-lg border border-gray-300 px-3 text-sm outline-none focus:border-gray-500 focus:ring-1 focus:ring-gray-500" />
               </div>
-              <div className="w-[110px] shrink-0 sm:w-[130px]">
+              <div className="min-w-0 w-full">
                 <label className="mb-1 ml-1 block text-[10px] font-bold text-gray-500">ステータス</label>
                 <SelectSheet label="ステータス" value={statusId} options={settings.statuses.map((status) => ({ value: status.id, label: status.title, color: status.color }))} onChange={setStatusId} size="md" />
               </div>
-              <div className="hidden shrink-0 sm:block">
-                <button className="flex h-[42px] items-center justify-center gap-1.5 rounded-lg bg-gray-800 px-5 text-sm font-medium text-white transition-colors hover:bg-gray-700">
+              <div className="hidden md:block">
+                <button className="flex h-[42px] w-[132px] items-center justify-center gap-1.5 rounded-lg bg-gray-800 px-3 text-sm font-medium text-white transition-colors hover:bg-gray-700">
                   <Plus size={18} />追加
                 </button>
               </div>
             </div>
-            <div className="flex flex-wrap gap-2 sm:gap-4">
-              <div className="w-[150px] shrink-0 sm:w-[170px]">
+            <div className="grid grid-cols-[minmax(0,1fr)_104px_minmax(118px,1.1fr)] items-end gap-2 sm:grid-cols-[minmax(0,1fr)_112px_minmax(130px,1.1fr)] sm:gap-4 md:grid-cols-[170px_112px_minmax(0,1fr)_132px]">
+              <div className="min-w-0 w-full">
                 <label className="mb-1 ml-1 block text-[10px] font-bold text-gray-500">担当者</label>
                 <SelectSheet label="担当" value={assigneeId} options={[{ value: '', label: '未設定' }, ...settings.assignees.map((assignee) => ({ value: assignee.id, label: assignee.name, color: assignee.color }))]} onChange={setAssigneeId} size="md" />
               </div>
-              <div className="w-[104px] shrink-0 sm:w-[112px]">
+              <div className="min-w-0 w-full">
                 <label className="mb-1 ml-1 block text-[10px] font-bold text-gray-500">期日</label>
                 <button type="button" onClick={openDueDatePicker} className="relative flex h-[42px] w-full items-center justify-center gap-1.5 rounded-lg border border-gray-300 bg-white px-2 text-sm font-medium text-gray-600 shadow-sm hover:bg-gray-50">
                   <Calendar size={15} className="text-gray-400" />
@@ -1425,7 +1446,7 @@ function AddTaskForm({ settings, onAdd, onCreateRecurrence, prefillDueDate, focu
                   <input ref={dueDateInputRef} type="date" value={dueDate} onChange={(event) => setDueDate(event.target.value)} className="pointer-events-none absolute h-px w-px opacity-0" tabIndex={-1} aria-label="期日" />
                 </button>
               </div>
-              <div className="min-w-[130px] flex-1">
+              <div className="min-w-0">
                 <label className="mb-1 ml-1 block text-[10px] font-bold text-gray-500">優先度</label>
                 <div className="flex h-[42px] items-center gap-2 overflow-hidden rounded-lg border border-gray-300 bg-white px-2 sm:px-3">
                   <input
@@ -1440,12 +1461,17 @@ function AddTaskForm({ settings, onAdd, onCreateRecurrence, prefillDueDate, focu
                   <span className="w-6 shrink-0 text-right text-xs font-bold" style={{ color: priorityColor(priority) }}>{priority}</span>
                 </div>
               </div>
+              <div className="hidden md:block">
+                <button type="button" onClick={() => setRecurrenceOpen(true)} className="box-border flex h-[42px] w-[132px] items-center justify-center gap-1.5 whitespace-nowrap rounded-lg border border-gray-300 bg-white px-3 text-sm font-medium leading-none text-gray-600 shadow-sm hover:bg-gray-50">
+                  <Repeat size={18} />繰り返し
+                </button>
+              </div>
             </div>
-            <div className="mt-1 grid grid-cols-[max-content_1fr] gap-2 sm:flex sm:justify-end">
+            <div className="mt-1 grid grid-cols-[max-content_1fr] gap-2 md:hidden">
               <button type="button" onClick={() => setRecurrenceOpen(true)} className="box-border flex h-[42px] min-h-[42px] w-max items-center justify-center gap-1.5 whitespace-nowrap rounded-lg border border-gray-300 bg-white px-3 text-sm font-medium leading-none text-gray-600 shadow-sm hover:bg-gray-50">
                 <Repeat size={18} />繰り返し設定
               </button>
-              <button className="flex h-[42px] items-center justify-center gap-2 rounded-lg bg-gray-800 px-4 text-sm font-medium text-white transition-colors hover:bg-gray-700 sm:hidden">
+              <button className="flex h-[42px] items-center justify-center gap-2 rounded-lg bg-gray-800 px-4 text-sm font-medium text-white transition-colors hover:bg-gray-700">
                 <Plus size={18} />追加
               </button>
             </div>
@@ -1528,17 +1554,63 @@ function BoardView({ board, settings, tasks, sourceBoards = [], onAddTask, onUpd
 }) {
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
   const [draggedTask, setDraggedTask] = useState<Task | null>(null);
+  const [dragOverStatusId, setDragOverStatusId] = useState<string | null>(null);
   const [columnSorts, setColumnSorts] = useState<Record<string, string>>({});
   const [addTaskFocusSignal, setAddTaskFocusSignal] = useState(0);
   const [boardToast, setBoardToast] = useState<{ title: string; detail?: string; taskId?: string } | null>(null);
   const [boardToastClosing, setBoardToastClosing] = useState(false);
   const boardToastTimerRef = useRef<number | null>(null);
   const boardToastExitTimerRef = useRef<number | null>(null);
+  const dragAutoScrollFrameRef = useRef<number | null>(null);
+  const dragAutoScrollSpeedRef = useRef(0);
   const visibleTasks = tasks.filter((task) => !task.deletedAt && !task.archivedAt);
+
+  const stopDragAutoScroll = () => {
+    if (dragAutoScrollFrameRef.current !== null) {
+      window.cancelAnimationFrame(dragAutoScrollFrameRef.current);
+      dragAutoScrollFrameRef.current = null;
+    }
+    dragAutoScrollSpeedRef.current = 0;
+  };
+
+  const runDragAutoScroll = () => {
+    const speed = dragAutoScrollSpeedRef.current;
+    if (speed !== 0) window.scrollBy({ top: speed, behavior: 'auto' });
+    dragAutoScrollFrameRef.current = window.requestAnimationFrame(runDragAutoScroll);
+  };
+
+  const updateDragAutoScroll = (event: DragEvent<HTMLElement>) => {
+    if (!draggedTask || window.innerWidth < 768) {
+      stopDragAutoScroll();
+      return;
+    }
+
+    const edgeSize = 96;
+    const maxSpeed = 18;
+    const y = event.clientY;
+    const distanceToBottom = window.innerHeight - y;
+    let nextSpeed = 0;
+
+    if (y < edgeSize) {
+      nextSpeed = -Math.ceil(((edgeSize - y) / edgeSize) * maxSpeed);
+    } else if (distanceToBottom < edgeSize) {
+      nextSpeed = Math.ceil(((edgeSize - distanceToBottom) / edgeSize) * maxSpeed);
+    }
+
+    dragAutoScrollSpeedRef.current = nextSpeed;
+    if (nextSpeed === 0) {
+      stopDragAutoScroll();
+      return;
+    }
+    if (dragAutoScrollFrameRef.current === null) {
+      dragAutoScrollFrameRef.current = window.requestAnimationFrame(runDragAutoScroll);
+    }
+  };
 
   useEffect(() => () => {
     if (boardToastTimerRef.current) window.clearTimeout(boardToastTimerRef.current);
     if (boardToastExitTimerRef.current) window.clearTimeout(boardToastExitTimerRef.current);
+    stopDragAutoScroll();
   }, []);
 
   useEffect(() => {
@@ -1609,6 +1681,13 @@ function BoardView({ board, settings, tasks, sourceBoards = [], onAddTask, onUpd
     showBoardToast({ title: 'タスクを追加しました', detail: task.title, taskId: createdId }, 5000);
   };
 
+  const setAllStatusesCollapsed = (nextCollapsed: boolean) => {
+    setCollapsed(Object.fromEntries(settings.statuses.map((status) => [status.id, nextCollapsed])));
+  };
+
+  const isStatusCollapsed = (statusId: string) => collapsed[statusId] ?? (settings.defaultCollapsed ?? false);
+  const allStatusesOpen = settings.statuses.length > 0 && settings.statuses.every((status) => !isStatusCollapsed(status.id));
+
   return (
     <div className="relative space-y-4">
       {boardToast ? (
@@ -1651,13 +1730,32 @@ function BoardView({ board, settings, tasks, sourceBoards = [], onAddTask, onUpd
         </div>
       ) : null}
 
-      <div className="flex flex-col items-start gap-4 overflow-x-auto pb-4 sm:gap-6 md:flex-row">
+      <div className="pc-board-grid flex flex-col items-start gap-4 overflow-x-auto pb-4 sm:gap-6" onDragEnd={() => { setDraggedTask(null); setDragOverStatusId(null); stopDragAutoScroll(); }} onMouseLeave={stopDragAutoScroll}>
         {settings.statuses.map((status) => {
           const columnTasks = sortedColumnTasks(status.id);
-          const isCollapsed = collapsed[status.id] ?? (settings.defaultCollapsed ?? false);
+          const isCollapsed = isStatusCollapsed(status.id);
           const sortOrder = columnSorts[status.id] || 'createdAt-desc';
           return (
-            <section key={status.id} style={{ borderColor: translucent(status.color, '55'), boxShadow: `inset 3px 0 0 ${translucent(status.color, '66')}` }} className="w-full md:w-auto flex-1 md:min-w-[360px] bg-gray-50/50 border rounded-xl p-2.5 sm:p-4" onDragOver={(event) => event.preventDefault()} onDrop={() => { if (!disableStatus && draggedTask) onUpdateTask(draggedTask, { statusId: status.id }); setDraggedTask(null); }}>
+            <section
+              key={status.id}
+              style={{ borderColor: translucent(status.color, '55'), boxShadow: `inset 3px 0 0 ${translucent(status.color, '66')}` }}
+              className={`pc-board-column w-full bg-gray-50/50 border rounded-xl p-2.5 sm:p-4 transition-[background-color,box-shadow,transform] ${dragOverStatusId === status.id ? 'is-drag-over' : ''}`}
+              onDragOver={(event) => {
+                event.preventDefault();
+                updateDragAutoScroll(event);
+                if (!disableStatus && draggedTask && dragOverStatusId !== status.id) setDragOverStatusId(status.id);
+              }}
+              onDragLeave={(event: DragEvent<HTMLElement>) => {
+                const nextTarget = event.relatedTarget as Node | null;
+                if (!event.currentTarget.contains(nextTarget)) setDragOverStatusId(null);
+              }}
+              onDrop={() => {
+                if (!disableStatus && draggedTask) onUpdateTask(draggedTask, { statusId: status.id });
+                setDraggedTask(null);
+                setDragOverStatusId(null);
+                stopDragAutoScroll();
+              }}
+            >
               <h2 onClick={() => setCollapsed((value) => ({ ...value, [status.id]: !isCollapsed }))} className="mb-2 flex cursor-pointer items-center justify-between border-b border-gray-200 pb-2">
                 <button type="button" onClick={(event) => { event.stopPropagation(); setCollapsed((value) => ({ ...value, [status.id]: !isCollapsed })); }} className="flex items-center gap-1.5 font-semibold text-gray-700 cursor-pointer hover:bg-gray-100 rounded px-1 py-1 transition-colors select-none">
                   {isCollapsed ? <ChevronRight size={18} className="text-gray-400" /> : <ChevronDown size={18} className="text-gray-400" />}
@@ -1691,13 +1789,25 @@ function BoardView({ board, settings, tasks, sourceBoards = [], onAddTask, onUpd
       </div>
 
       <div className="text-center text-xs text-gray-400">Simple Task Board</div>
+      {settings.statuses.length > 0 ? (
+        <button
+          type="button"
+          onClick={() => setAllStatusesCollapsed(allStatusesOpen)}
+          className={`fixed right-6 z-30 flex h-10 w-10 items-center justify-center rounded-full border border-gray-200 text-gray-600 shadow-xl backdrop-blur transition-[background-color,opacity,transform,box-shadow] duration-200 hover:bg-white active:scale-95 ${allStatusesOpen ? 'bg-white/70 opacity-75 hover:opacity-95' : 'bg-white/95 opacity-95 hover:opacity-100'} ${disableAdd ? 'bottom-[calc(env(safe-area-inset-bottom)+84px)] md:bottom-7 md:right-8' : 'bottom-[calc(env(safe-area-inset-bottom)+140px)] md:bottom-24 md:right-8'}`}
+          aria-label={allStatusesOpen ? 'すべてのステータスを閉じる' : 'すべてのステータスを開く'}
+          title={allStatusesOpen ? '全部閉じる' : '全部開く'}
+        >
+          <ChevronDown className={`absolute transition-all duration-200 ease-out ${allStatusesOpen ? 'rotate-90 scale-75 opacity-0' : 'rotate-0 scale-100 opacity-100'}`} size={21} strokeWidth={2.4} />
+          <ChevronRight className={`absolute transition-all duration-200 ease-out ${allStatusesOpen ? 'rotate-0 scale-100 opacity-100' : '-rotate-90 scale-75 opacity-0'}`} size={21} strokeWidth={2.4} />
+        </button>
+      ) : null}
       {!disableAdd ? <button
         type="button"
         onClick={() => {
           setAddTaskFocusSignal(Date.now());
           document.getElementById('add-task-form')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
         }}
-        className="fixed bottom-[calc(env(safe-area-inset-bottom)+88px)] right-4 z-30 flex h-14 w-14 items-center justify-center rounded-full bg-gray-800 text-white shadow-xl transition-transform hover:bg-gray-700 active:scale-95 md:bottom-6 md:right-6"
+        className="fixed bottom-[calc(env(safe-area-inset-bottom)+76px)] right-4 z-30 flex h-14 w-14 items-center justify-center rounded-full bg-gray-800 text-white shadow-xl transition-transform hover:bg-gray-700 active:scale-95 md:bottom-6 md:right-6"
         aria-label="新しいタスクを追加"
       >
         <Plus size={26} strokeWidth={2.5} />
@@ -3905,8 +4015,8 @@ export default function App() {
 
   return (
     <main className={`min-h-screen bg-[#fafafa] pb-20 text-gray-800 md:pb-6 ${settings.darkMode ? 'app-dark' : ''}`}>
-      <header className="sticky top-0 z-30 border-b border-gray-200 bg-[#fafafa]/95 px-3 py-3 backdrop-blur md:px-6">
-        <div className="mx-auto flex max-w-6xl items-center justify-between gap-3">
+      <header className="sticky top-0 z-30 border-b border-gray-200 bg-[#fafafa]/95 px-3 py-3 backdrop-blur md:px-6 lg:px-8">
+        <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 lg:max-w-none">
           <div className="min-w-0 flex-1">
             <div className="flex min-w-0 items-center gap-2">
               <button type="button" onClick={() => setSidebarOpen(true)} className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-gray-200 bg-white text-gray-600 shadow-sm hover:bg-gray-50" aria-label="ボードメニュー">
@@ -3928,17 +4038,25 @@ export default function App() {
               {busy ? <Loader2 className="animate-spin text-gray-400" size={18} /> : null}
             </div>
           </div>
-          <div className="hidden items-center gap-2 md:flex">
-            {(['board', 'calendar', 'search'] as AppTab[]).map((item) => (
-              <button key={item} onClick={() => changeTab(item)} className={`rounded-lg px-3 py-2 text-sm font-bold transition-colors ${tab === item ? 'bg-gray-800 text-white shadow-sm' : 'text-gray-500 hover:bg-gray-100 hover:text-gray-800'}`}>
-                {item === 'board' ? 'ボード' : item === 'calendar' ? 'カレンダー' : '検索'}
+          <div className="hidden items-center gap-1.5 md:flex">
+            {([
+              { id: 'board', label: 'ボード', icon: LayoutDashboard },
+              { id: 'calendar', label: 'カレンダー', icon: CalendarDays },
+              { id: 'search', label: '検索', icon: Search },
+            ] as const).map((item) => {
+              const Icon = item.icon;
+              return (
+              <button key={item.id} onClick={() => changeTab(item.id)} className={`flex h-12 min-w-[58px] flex-col items-center justify-center gap-0.5 rounded-lg px-2 text-[11px] font-bold transition-colors lg:min-w-[66px] ${tab === item.id ? 'bg-gray-800 text-white shadow-sm' : 'text-gray-500 hover:bg-gray-100 hover:text-gray-800'}`}>
+                <Icon size={18} strokeWidth={tab === item.id ? 2.5 : 2} />
+                <span>{item.label}</span>
               </button>
-            ))}
-            <button key="settings" onClick={() => changeTab('settings')} className={`ml-1 flex h-9 items-center gap-1.5 rounded-lg px-2 text-xs font-bold transition-colors ${tab === 'settings' ? 'bg-gray-800 text-white shadow-sm' : 'text-gray-500 hover:bg-gray-100 hover:text-gray-800'}`} title="その他">
-              <MoreHorizontal size={16} />その他
+            );})}
+            <button key="settings" onClick={() => changeTab('settings')} className={`ml-1 flex h-12 min-w-[54px] flex-col items-center justify-center gap-0.5 rounded-lg px-2 text-[11px] font-bold transition-colors ${tab === 'settings' ? 'bg-gray-800 text-white shadow-sm' : 'text-gray-500 hover:bg-gray-100 hover:text-gray-800'}`} title="その他">
+              <MoreHorizontal size={18} strokeWidth={tab === 'settings' ? 2.5 : 2} />
+              <span>その他</span>
             </button>
           </div>
-          <button onClick={() => setBoardSettingsOpen(true)} disabled={!currentBoard} className="rounded-lg bg-white p-2 text-gray-500 shadow-sm hover:text-gray-800 disabled:opacity-40" aria-label="ボード設定">
+          <button onClick={() => setBoardSettingsOpen(true)} disabled={!currentBoard} className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-gray-200 bg-white text-gray-500 shadow-sm hover:text-gray-800 disabled:opacity-40" aria-label="ボード設定">
             <Settings size={20} />
           </button>
         </div>
@@ -3957,7 +4075,7 @@ export default function App() {
         onUpdateAggregateSources={updateAggregateSources}
       />
 
-      <div className="mx-auto max-w-6xl px-3 py-4 md:px-6">
+      <div className="mx-auto max-w-6xl px-3 py-4 md:px-6 lg:max-w-none lg:px-8">
         {!online ? <div className="mb-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-800">オフラインです。接続が戻るまで保存できない場合があります。</div> : null}
         {migrationSuccess ? (
           <div className="mb-4 flex items-center justify-between gap-3 rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm font-semibold text-gray-700 shadow-sm">
