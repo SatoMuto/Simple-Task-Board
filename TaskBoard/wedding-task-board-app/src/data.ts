@@ -143,12 +143,13 @@ export const updateSettings = async (boardId: string, settings: Partial<BoardSet
 
 export const createTask = async (boardId: string, task: Omit<Task, 'id' | 'createdAt' | 'updatedAt'>) => {
   const createdAt = now();
-  await addDoc(tasksRef(boardId), {
+  const created = await addDoc(tasksRef(boardId), {
     ...task,
     createdAt,
     updatedAt: createdAt,
   });
   await updateBoard(boardId, {});
+  return created.id;
 };
 
 export const updateTask = async (boardId: string, taskId: string, updates: Partial<Task>) => {

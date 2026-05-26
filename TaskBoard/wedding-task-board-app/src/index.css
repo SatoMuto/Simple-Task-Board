@@ -71,6 +71,53 @@ textarea {
   background: white;
 }
 
+.collapsible-grid {
+  display: grid;
+  grid-template-rows: 0fr;
+  opacity: 0;
+  transition: grid-template-rows 220ms ease, opacity 180ms ease;
+}
+
+.collapsible-grid.is-open {
+  grid-template-rows: 1fr;
+  opacity: 1;
+}
+
+.collapsible-inner {
+  min-height: 0;
+  overflow: hidden;
+}
+
+@keyframes calendarSwipeNext {
+  0% {
+    opacity: 0.72;
+    transform: translateX(18px) scale(0.995);
+  }
+  100% {
+    opacity: 1;
+    transform: translateX(0) scale(1);
+  }
+}
+
+@keyframes calendarSwipePrev {
+  0% {
+    opacity: 0.72;
+    transform: translateX(-18px) scale(0.995);
+  }
+  100% {
+    opacity: 1;
+    transform: translateX(0) scale(1);
+  }
+}
+
+.calendar-swipe-next {
+  animation: calendarSwipeNext 260ms ease-out;
+}
+
+.calendar-swipe-prev {
+  animation: calendarSwipePrev 260ms ease-out;
+}
+
 .app-dark {
   background: #111827;
   color: #e5e7eb;

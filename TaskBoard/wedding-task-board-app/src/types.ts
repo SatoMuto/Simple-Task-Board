@@ -89,6 +89,7 @@ export type Task = {
   recurrenceOccurrenceAt?: number;
   sourceBoardId?: string;
   sourceBoardTitle?: string;
+  availableAggregateStatusIds?: string[];
 };
 
 export type Invite = {

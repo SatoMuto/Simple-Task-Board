@@ -203,6 +203,9 @@ const aggregateKeyPart = (value: string) => encodeURIComponent(value.trim()).rep
 const aggregateColorPart = (value: string) => value.replace(/[^a-zA-Z0-9]/g, '').toLowerCase();
 const aggregateStatusId = (status: StatusColumn) => `agg-status-${aggregateKeyPart(status.title)}-${aggregateColorPart(status.color)}`;
 const aggregateAssigneeId = (assignee: Assignee) => `agg-assignee-${aggregateKeyPart(assignee.name)}-${aggregateColorPart(assignee.color)}`;
+const sourceStatusIdFromAggregate = (aggregateId: string, sourceSettings?: BoardSettings) => (
+  sourceSettings?.statuses.find((status) => aggregateStatusId(status) === aggregateId)?.id || null
+);
 
 const buildAggregateView = (
   sourceBoardIds: string[],
@@ -241,6 +244,7 @@ const buildAggregateView = (
       assigneeIds: task.assigneeIds.map((id) => assigneeIdMap[boardId]?.[id] || id),
       sourceBoardId: boardId,
       sourceBoardTitle: sourceBoard?.title || '元ボード',
+      availableAggregateStatusIds: Object.values(statusIdMap[boardId] || {}),
     }));
   });
 
@@ -801,6 +805,9 @@ function TaskCard({
   const currentAssigneeId = task.assigneeIds[0] || '';
   const currentAssignee = settings.assignees.find((assignee) => assignee.id === currentAssigneeId);
   const currentStatus = settings.statuses.find((status) => status.id === task.statusId);
+  const statusOptions = task.availableAggregateStatusIds
+    ? settings.statuses.filter((status) => task.availableAggregateStatusIds?.includes(status.id))
+    : settings.statuses;
   const currentPriority = task.priority ?? 50;
   const activeSubtasks = (task.subtasks || []).filter((subtask) => !subtask.deletedAt);
   const completedSubtasksCount = activeSubtasks.filter((subtask) => subtask.completed).length;
@@ -1039,7 +1046,7 @@ function TaskCard({
         </div>
       ) : null}
 
-      <SelectSheet label="ステータス" value={task.statusId} options={settings.statuses.map((status) => ({ value: status.id, label: status.title, color: status.color }))} onChange={(nextValue) => !readOnly && !disableStatus && onUpdate(task.id, { statusId: nextValue })} disabled={readOnly || disableStatus} />
+      <SelectSheet label="ステータス" value={task.statusId} options={statusOptions.map((status) => ({ value: status.id, label: status.title, color: status.color }))} onChange={(nextValue) => !readOnly && !disableStatus && onUpdate(task.id, { statusId: nextValue })} disabled={readOnly || disableStatus} />
 
       <div className="grid grid-cols-[minmax(96px,1.25fr)_76px_minmax(88px,1fr)] gap-1.5">
         <div className="min-w-0">
@@ -1282,7 +1289,7 @@ function PriorityFilterButton({ label, value, onChange }: { label: string; value
   );
 }
 
-function AddTaskForm({ settings, onAdd, onCreateRecurrence, prefillDueDate, focusSignal }: { settings: BoardSettings; onAdd: (task: Omit<Task, 'id' | 'createdAt' | 'updatedAt'>) => void; onCreateRecurrence: (rule: RecurrenceRule) => void; prefillDueDate?: { value: string; id: number } | null; focusSignal?: number }) {
+function AddTaskForm({ settings, onAdd, onCreateRecurrence, prefillDueDate, focusSignal }: { settings: BoardSettings; onAdd: (task: Omit<Task, 'id' | 'createdAt' | 'updatedAt'>) => void | string | Promise<void | string | undefined>; onCreateRecurrence: (rule: RecurrenceRule) => void; prefillDueDate?: { value: string; id: number } | null; focusSignal?: number }) {
   const [title, setTitle] = useState('');
   const [statusId, setStatusId] = useState(settings.statuses[0]?.id || 'todo');
   const [assigneeId, setAssigneeId] = useState('');
@@ -1317,10 +1324,10 @@ function AddTaskForm({ settings, onAdd, onCreateRecurrence, prefillDueDate, focu
     window.setTimeout(() => titleInputRef.current?.focus(), 120);
   }, [focusSignal]);
 
-  const submit = (event: FormEvent) => {
+  const submit = async (event: FormEvent) => {
     event.preventDefault();
     if (!title.trim()) return;
-    onAdd({
+    await onAdd({
       title: title.trim(),
       statusId,
       assigneeIds: assigneeId ? [assigneeId] : [],
@@ -1386,7 +1393,8 @@ function AddTaskForm({ settings, onAdd, onCreateRecurrence, prefillDueDate, focu
         </div>
         {collapsed ? <ChevronDown size={18} className="text-gray-400" /> : <ChevronDown size={18} className="rotate-180 text-gray-400" />}
       </button>
-      {!collapsed ? (
+      <div className={`collapsible-grid ${!collapsed ? 'is-open' : ''}`}>
+        <div className="collapsible-inner">
         <form onSubmit={submit} className="rounded-b-xl border-t border-gray-200 p-4 sm:p-5">
           <div className="flex flex-col gap-3 sm:gap-4">
             <div className="flex items-end gap-2 sm:gap-4">
@@ -1443,7 +1451,8 @@ function AddTaskForm({ settings, onAdd, onCreateRecurrence, prefillDueDate, focu
             </div>
           </div>
         </form>
-      ) : null}
+        </div>
+      </div>
       {recurrenceOpen ? (
         <div className="fixed inset-0 z-[190] flex items-center justify-center bg-black/45 p-4">
           <div className="custom-scrollbar max-h-[84vh] w-full max-w-md overflow-y-auto rounded-2xl border border-gray-200 bg-white p-5 shadow-2xl">
@@ -1504,7 +1513,7 @@ function BoardView({ board, settings, tasks, sourceBoards = [], onAddTask, onUpd
   settings: BoardSettings;
   tasks: Task[];
   sourceBoards?: Board[];
-  onAddTask: (task: Omit<Task, 'id' | 'createdAt' | 'updatedAt'>) => void;
+  onAddTask: (task: Omit<Task, 'id' | 'createdAt' | 'updatedAt'>) => string | Promise<string | undefined> | undefined;
   onUpdateTask: (task: Task, updates: Partial<Task>) => void;
   onTrashTask: (task: Task) => void;
   onArchiveTask: (task: Task) => void;
@@ -1521,7 +1530,13 @@ function BoardView({ board, settings, tasks, sourceBoards = [], onAddTask, onUpd
   const [draggedTask, setDraggedTask] = useState<Task | null>(null);
   const [columnSorts, setColumnSorts] = useState<Record<string, string>>({});
   const [addTaskFocusSignal, setAddTaskFocusSignal] = useState(0);
+  const [createdToast, setCreatedToast] = useState<{ taskId: string; title: string } | null>(null);
+  const createdToastTimerRef = useRef<number | null>(null);
   const visibleTasks = tasks.filter((task) => !task.deletedAt && !task.archivedAt);
+
+  useEffect(() => () => {
+    if (createdToastTimerRef.current) window.clearTimeout(createdToastTimerRef.current);
+  }, []);
 
   useEffect(() => {
     if (!highlightedTaskId) return;
@@ -1555,8 +1570,43 @@ function BoardView({ board, settings, tasks, sourceBoards = [], onAddTask, onUpd
     });
   };
 
+  const jumpToCreatedTask = (taskId: string) => {
+    setCollapsed((current) => {
+      const targetTask = visibleTasks.find((task) => task.id === taskId);
+      return targetTask ? { ...current, [targetTask.statusId]: false } : current;
+    });
+    window.setTimeout(() => {
+      document.getElementById(`task-${taskId}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      setCreatedToast(null);
+    }, 80);
+  };
+
+  const handleAddTask = async (task: Omit<Task, 'id' | 'createdAt' | 'updatedAt'>) => {
+    const createdId = await onAddTask(task);
+    if (!createdId) return;
+    setCollapsed((current) => ({ ...current, [task.statusId]: false }));
+    setCreatedToast({ taskId: createdId, title: task.title });
+    if (createdToastTimerRef.current) window.clearTimeout(createdToastTimerRef.current);
+    createdToastTimerRef.current = window.setTimeout(() => setCreatedToast(null), 5000);
+  };
+
   return (
     <div className="relative space-y-4">
+      {createdToast ? (
+        <button
+          type="button"
+          onClick={() => jumpToCreatedTask(createdToast.taskId)}
+          className="fixed right-3 top-[calc(env(safe-area-inset-top)+76px)] z-[120] max-w-[calc(100vw-1.5rem)] rounded-xl border border-gray-200 bg-white px-3 py-2 text-left shadow-2xl transition hover:bg-gray-50 sm:right-5 sm:top-20 sm:max-w-sm"
+        >
+          <div className="flex items-start gap-2">
+            <Check size={16} className="mt-0.5 shrink-0 text-gray-500" />
+            <div className="min-w-0">
+              <div className="text-xs font-bold text-gray-700">タスクを追加しました</div>
+              <div className="mt-0.5 truncate text-xs text-gray-500">{createdToast.title}</div>
+            </div>
+          </div>
+        </button>
+      ) : null}
       {disableAdd ? (
         <div className="rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm leading-6 text-gray-500 shadow-sm">
           <div className="font-bold text-gray-700">まとめボード</div>
@@ -1571,7 +1621,7 @@ function BoardView({ board, settings, tasks, sourceBoards = [], onAddTask, onUpd
           </div>
         </div>
       ) : (
-        <AddTaskForm settings={settings} onAdd={onAddTask} onCreateRecurrence={onCreateRecurrence} prefillDueDate={prefillDueDate} focusSignal={addTaskFocusSignal} />
+        <AddTaskForm settings={settings} onAdd={handleAddTask} onCreateRecurrence={onCreateRecurrence} prefillDueDate={prefillDueDate} focusSignal={addTaskFocusSignal} />
       )}
 
       {!disableAdd && visibleTasks.length === 0 ? (
@@ -1603,8 +1653,9 @@ function BoardView({ board, settings, tasks, sourceBoards = [], onAddTask, onUpd
                   />
                 ) : null}
               </h2>
-              {!isCollapsed ? (
-                <div className="space-y-3 sm:space-y-4 min-h-[100px] mt-3 animate-in slide-in-from-top-2 fade-in duration-200">
+              <div className={`collapsible-grid ${!isCollapsed ? 'is-open' : ''}`}>
+                <div className="collapsible-inner">
+                <div className="space-y-3 sm:space-y-4 min-h-[100px] mt-3">
                   {columnTasks.map((task) => <TaskCard key={`${task.sourceBoardId || board.id}-${task.id}`} task={task} settings={settings} onUpdate={(_, updates) => onUpdateTask(task, updates)} onTrash={() => onTrashTask(task)} onArchive={() => onArchiveTask(task)} onCreateRecurrence={onCreateRecurrence} onDragStart={() => !disableStatus && setDraggedTask(task)} onOpenSourceTask={onOpenSourceTask} highlighted={highlightedTaskId === task.id} disableDelete={disableDelete} disableStatus={disableStatus} />)}
                   {columnTasks.length === 0 ? (
                     <div className="rounded-lg border-2 border-dashed border-gray-200 bg-gray-50/50 px-3 py-6 text-center">
@@ -1613,7 +1664,8 @@ function BoardView({ board, settings, tasks, sourceBoards = [], onAddTask, onUpd
                     </div>
                   ) : null}
                 </div>
-              ) : null}
+                </div>
+              </div>
             </section>
           );
         })}
@@ -1724,9 +1776,10 @@ function CalendarView({ tasks, settings, onOpenTask, onCreateTaskForDate }: {
     if (swipeFeedbackTimerRef.current) window.clearTimeout(swipeFeedbackTimerRef.current);
   }, []);
 
-  const showSwipeFeedback = (message: string) => {
-    setSwipeFeedback(message);
+  const showSwipeFeedback = (direction: 'next' | 'prev') => {
+    setSwipeFeedback('');
     if (swipeFeedbackTimerRef.current) window.clearTimeout(swipeFeedbackTimerRef.current);
+    window.requestAnimationFrame(() => setSwipeFeedback(direction));
     swipeFeedbackTimerRef.current = window.setTimeout(() => setSwipeFeedback(''), 900);
   };
 
@@ -1735,12 +1788,12 @@ function CalendarView({ tasks, settings, onOpenTask, onCreateTaskForDate }: {
     next.setDate(next.getDate() + amount * 7);
     setSelectedDate(dateKey(next));
     setVisibleMonth(new Date(next.getFullYear(), next.getMonth(), 1));
-    if (source === 'swipe') showSwipeFeedback(amount > 0 ? '次の週へ移動しました' : '前の週へ移動しました');
+    if (source === 'swipe') showSwipeFeedback(amount > 0 ? 'next' : 'prev');
   };
 
   const moveMonth = (amount: number, source: 'button' | 'swipe' = 'button') => {
     setVisibleMonth((current) => new Date(current.getFullYear(), current.getMonth() + amount, 1));
-    if (source === 'swipe') showSwipeFeedback(amount > 0 ? '次の月へ移動しました' : '前の月へ移動しました');
+    if (source === 'swipe') showSwipeFeedback(amount > 0 ? 'next' : 'prev');
   };
 
   const jumpToThisMonth = () => {
@@ -1821,12 +1874,7 @@ function CalendarView({ tasks, settings, onOpenTask, onCreateTaskForDate }: {
 
   return (
     <div className="space-y-4">
-      <section className="relative touch-pan-y overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm" onPointerDown={startSwipe} onPointerUp={endSwipe} onPointerCancel={() => { swipeStartRef.current = null; }} onTouchStart={startTouchSwipe} onTouchEnd={endTouchSwipe} onTouchCancel={() => { swipeStartRef.current = null; }}>
-        {swipeFeedback ? (
-          <div className="pointer-events-none absolute left-1/2 top-16 z-20 -translate-x-1/2 rounded-full bg-gray-800/90 px-3 py-1.5 text-xs font-bold text-white shadow-lg">
-            {swipeFeedback}
-          </div>
-        ) : null}
+      <section className={`relative touch-pan-y overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm ${swipeFeedback === 'next' ? 'calendar-swipe-next' : swipeFeedback === 'prev' ? 'calendar-swipe-prev' : ''}`} onPointerDown={startSwipe} onPointerUp={endSwipe} onPointerCancel={() => { swipeStartRef.current = null; }} onTouchStart={startTouchSwipe} onTouchEnd={endTouchSwipe} onTouchCancel={() => { swipeStartRef.current = null; }}>
         <div className="border-b border-gray-200 bg-gray-50 px-3 py-3 sm:px-4">
           <div className="mb-3 grid grid-cols-3 rounded-lg bg-gray-200 p-1">
             {[
@@ -2027,7 +2075,8 @@ function SearchView({ tasks, settings, onOpenTask }: { tasks: Task[]; settings: 
             <button type="button" onClick={() => { clearFilters(); setFiltersOpen(true); }} className="flex items-center gap-1 rounded-lg border border-gray-300 bg-white px-2 py-1.5 text-xs font-bold text-gray-500 shadow-sm hover:bg-gray-50"><RotateCcw size={13} />リセット</button>
           </div>
         </div>
-        {filtersOpen ? (
+        <div className={`collapsible-grid ${filtersOpen ? 'is-open' : ''}`}>
+          <div className="collapsible-inner">
           <div className="grid gap-2 sm:grid-cols-2">
             <div>
               <label className="mb-1 ml-1 block text-[10px] font-bold text-gray-500">並び順</label>
@@ -2061,7 +2110,8 @@ function SearchView({ tasks, settings, onOpenTask }: { tasks: Task[]; settings: 
               <PriorityFilterButton label="優先度 上限" value={priorityTo} onChange={setPriorityTo} />
             </div>
           </div>
-        ) : null}
+          </div>
+        </div>
       </section>
       <div className="space-y-2">
         {filtered.map((task) => (
@@ -2659,8 +2709,8 @@ function BoardSettingsModal({
                       >
                         <GripVertical size={16} />
                       </button>
-                      <label className="relative h-5 w-5 shrink-0 cursor-pointer rounded-full border border-black/10 shadow-sm" style={{ backgroundColor: status.color }} title="色を変更">
-                        <input type="color" value={status.color} disabled={!isOwner} onChange={(event) => changeStatusColor(status.id, event.target.value)} className="absolute inset-0 h-full w-full cursor-pointer opacity-0 disabled:cursor-not-allowed" />
+                      <label className={`relative h-5 w-5 shrink-0 rounded-full border border-black/10 shadow-sm ${!isOwner || isNameLocked ? 'cursor-default opacity-70' : 'cursor-pointer'}`} style={{ backgroundColor: status.color }} title={isNameLocked ? '固定ステータスの色は変更できません' : '色を変更'}>
+                        <input type="color" value={status.color} disabled={!isOwner || isNameLocked} onChange={(event) => changeStatusColor(status.id, event.target.value)} className="absolute inset-0 h-full w-full cursor-pointer opacity-0 disabled:cursor-not-allowed" />
                       </label>
                       <button type="button" disabled={!isOwner || isNameLocked} onClick={() => openNameEditor('status', status.id, status.title)} className="min-w-0 flex-1 truncate rounded px-1 py-1 text-left text-sm font-medium text-gray-700 hover:bg-white disabled:cursor-default disabled:text-gray-500" title={isNameLocked ? 'このステータス名は変更できません' : '名称を変更'}>
                         {status.title}
@@ -3183,6 +3233,7 @@ export default function App() {
   const [notificationOpen, setNotificationOpen] = useState(false);
   const [notifiedTaskKeys, setNotifiedTaskKeys] = useState<Set<string>>(() => new Set(JSON.parse(localStorage.getItem('task-board-notified-v1') || '[]') as string[]));
   const [busy, setBusy] = useState(false);
+  const [aggregateSettingsByBoard, setAggregateSettingsByBoard] = useState<Record<string, BoardSettings>>({});
   const recurrenceRunRef = useRef('');
 
   useEffect(() => {
@@ -3228,6 +3279,7 @@ export default function App() {
     if (!currentBoardId) {
       setTasks([]);
       setSettings(defaultSettings);
+      setAggregateSettingsByBoard({});
       return undefined;
     }
     const selectedBoard = boards.find((board) => board.id === currentBoardId);
@@ -3236,6 +3288,7 @@ export default function App() {
       if (sourceIds.length === 0) {
         setTasks([]);
         setSettings(defaultSettings);
+        setAggregateSettingsByBoard({});
         return undefined;
       }
       const taskMap = new Map<string, Task[]>();
@@ -3244,6 +3297,7 @@ export default function App() {
         const view = buildAggregateView(sourceIds, boards, settingsMap, Object.fromEntries(taskMap));
         setSettings(view.settings);
         setTasks(view.tasks);
+        setAggregateSettingsByBoard({ ...settingsMap });
       };
       const unsubs = sourceIds.flatMap((boardId) => [
         listenSettings(boardId, (nextSettings) => {
@@ -3261,6 +3315,7 @@ export default function App() {
     }
     const unsubSettings = listenSettings(currentBoardId, setSettings);
     const unsubTasks = listenTasks(currentBoardId, setTasks);
+    setAggregateSettingsByBoard({});
     return () => {
       unsubSettings();
       unsubTasks();
@@ -3279,9 +3334,11 @@ export default function App() {
       const view = buildAggregateView(sourceIds, nextBoards, localState.settingsByBoard, localState.tasksByBoard);
       setSettings(view.settings);
       setTasks(view.tasks);
+      setAggregateSettingsByBoard(Object.fromEntries(sourceIds.map((boardId) => [boardId, localState.settingsByBoard[boardId] || defaultSettings])));
     } else {
       setSettings(currentBoardId ? localState.settingsByBoard[currentBoardId] || defaultSettings : defaultSettings);
       setTasks(currentBoardId ? localState.tasksByBoard[currentBoardId] || [] : []);
+      setAggregateSettingsByBoard({});
     }
   }, [isGuestMode, localState, currentBoardId]);
 
@@ -3450,6 +3507,7 @@ export default function App() {
         [boardId]: [...(state.tasksByBoard[boardId] || []), newTask],
       },
     }));
+    return newTask.id;
   };
 
   const updateLocalTask = (boardId: string, taskId: string, updates: Partial<Task>) => {
@@ -3695,8 +3753,14 @@ export default function App() {
                 onAddTask={(task) => (isGuestMode ? addLocalTask(currentBoard.id, task) : createTask(currentBoard.id, task))}
                 onUpdateTask={(task, updates) => {
                   const targetBoardId = task.sourceBoardId || currentBoard.id;
-                  if (isGuestMode) updateLocalTask(targetBoardId, task.id, updates);
-                  else updateTask(targetBoardId, task.id, updates);
+                  let nextUpdates = updates;
+                  if (isAggregateBoard && task.sourceBoardId && updates.statusId) {
+                    const sourceStatusId = sourceStatusIdFromAggregate(updates.statusId, aggregateSettingsByBoard[targetBoardId]);
+                    if (!sourceStatusId) return;
+                    nextUpdates = { ...updates, statusId: sourceStatusId };
+                  }
+                  if (isGuestMode) updateLocalTask(targetBoardId, task.id, nextUpdates);
+                  else updateTask(targetBoardId, task.id, nextUpdates);
                 }}
                 onTrashTask={(task) => {
                   const targetBoardId = task.sourceBoardId || currentBoard.id;
@@ -3715,7 +3779,6 @@ export default function App() {
                 prefillDueDate={prefillTaskDueDate}
                 disableAdd={isAggregateBoard}
                 disableDelete={isAggregateBoard}
-                disableStatus={isAggregateBoard}
               />
             ) : null}
             {tab === 'calendar' ? (
