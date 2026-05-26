@@ -171,6 +171,28 @@ textarea {
   }
 }
 
+@keyframes toastFloatIn {
+  0% {
+    opacity: 0;
+    transform: translateY(-8px) scale(0.97);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes toastFloatOut {
+  0% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-8px) scale(0.97);
+  }
+}
+
 .modal-backdrop {
   animation: modalBackdropFade 160ms ease-out;
 }
@@ -198,6 +220,15 @@ textarea {
   transform-origin: top center;
 }
 
+.toast-float {
+  animation: toastFloatIn 180ms ease-out;
+  transform-origin: top right;
+}
+
+.toast-float.is-leaving {
+  animation: toastFloatOut 160ms ease-in forwards;
+}
+
 @media (min-width: 640px) {
   .modal-responsive-panel {
     animation: modalFloatIn 190ms ease-out;
@@ -211,6 +242,7 @@ textarea {
   .modal-sheet-up,
   .modal-responsive-panel,
   .popover-float,
+  .toast-float,
   .calendar-swipe-next,
   .calendar-swipe-prev {
     animation: none;

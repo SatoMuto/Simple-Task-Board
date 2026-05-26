@@ -877,7 +877,7 @@ function TaskCard({
   };
 
   return (
-    <article id={`task-${task.id}`} className={`bg-white border border-gray-200 rounded-xl p-3 shadow-sm flex flex-col gap-2.5 relative transition-shadow ${highlighted ? 'ring-2 ring-gray-500 ring-offset-2' : ''}`}>
+    <article id={`task-${task.id}`} className={`bg-white border border-gray-200 rounded-xl p-3 shadow-sm flex flex-col gap-2.5 relative transition-[box-shadow,background-color] ${highlighted ? 'z-10 bg-gray-50 ring-2 ring-inset ring-gray-700 shadow-md' : ''}`}>
       <div className="flex justify-between items-start gap-2 relative">
         <div draggable={!readOnly && !disableStatus} onDragStart={() => !readOnly && !disableStatus && onDragStart(task.id)} className={`p-1 -ml-1 -mt-1 rounded hidden md:block ${readOnly || disableStatus ? 'text-gray-200' : 'cursor-grab active:cursor-grabbing text-gray-300 hover:text-gray-500'}`} title={readOnly || disableStatus ? 'この画面ではステータス移動できません' : 'ドラッグして移動'}>
           <GripVertical size={20} />
@@ -1530,12 +1530,15 @@ function BoardView({ board, settings, tasks, sourceBoards = [], onAddTask, onUpd
   const [draggedTask, setDraggedTask] = useState<Task | null>(null);
   const [columnSorts, setColumnSorts] = useState<Record<string, string>>({});
   const [addTaskFocusSignal, setAddTaskFocusSignal] = useState(0);
-  const [createdToast, setCreatedToast] = useState<{ taskId: string; title: string } | null>(null);
-  const createdToastTimerRef = useRef<number | null>(null);
+  const [boardToast, setBoardToast] = useState<{ title: string; detail?: string; taskId?: string } | null>(null);
+  const [boardToastClosing, setBoardToastClosing] = useState(false);
+  const boardToastTimerRef = useRef<number | null>(null);
+  const boardToastExitTimerRef = useRef<number | null>(null);
   const visibleTasks = tasks.filter((task) => !task.deletedAt && !task.archivedAt);
 
   useEffect(() => () => {
-    if (createdToastTimerRef.current) window.clearTimeout(createdToastTimerRef.current);
+    if (boardToastTimerRef.current) window.clearTimeout(boardToastTimerRef.current);
+    if (boardToastExitTimerRef.current) window.clearTimeout(boardToastExitTimerRef.current);
   }, []);
 
   useEffect(() => {
@@ -1570,14 +1573,32 @@ function BoardView({ board, settings, tasks, sourceBoards = [], onAddTask, onUpd
     });
   };
 
-  const jumpToCreatedTask = (taskId: string) => {
+  const dismissBoardToast = () => {
+    setBoardToastClosing(true);
+    if (boardToastTimerRef.current) window.clearTimeout(boardToastTimerRef.current);
+    if (boardToastExitTimerRef.current) window.clearTimeout(boardToastExitTimerRef.current);
+    boardToastExitTimerRef.current = window.setTimeout(() => {
+      setBoardToast(null);
+      setBoardToastClosing(false);
+    }, 160);
+  };
+
+  const showBoardToast = (toast: { title: string; detail?: string; taskId?: string }, duration = 4200) => {
+    if (boardToastTimerRef.current) window.clearTimeout(boardToastTimerRef.current);
+    if (boardToastExitTimerRef.current) window.clearTimeout(boardToastExitTimerRef.current);
+    setBoardToastClosing(false);
+    setBoardToast(toast);
+    boardToastTimerRef.current = window.setTimeout(dismissBoardToast, duration);
+  };
+
+  const jumpToToastTask = (taskId: string) => {
     setCollapsed((current) => {
       const targetTask = visibleTasks.find((task) => task.id === taskId);
       return targetTask ? { ...current, [targetTask.statusId]: false } : current;
     });
     window.setTimeout(() => {
       document.getElementById(`task-${taskId}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-      setCreatedToast(null);
+      dismissBoardToast();
     }, 80);
   };
 
@@ -1585,24 +1606,22 @@ function BoardView({ board, settings, tasks, sourceBoards = [], onAddTask, onUpd
     const createdId = await onAddTask(task);
     if (!createdId) return;
     setCollapsed((current) => ({ ...current, [task.statusId]: false }));
-    setCreatedToast({ taskId: createdId, title: task.title });
-    if (createdToastTimerRef.current) window.clearTimeout(createdToastTimerRef.current);
-    createdToastTimerRef.current = window.setTimeout(() => setCreatedToast(null), 5000);
+    showBoardToast({ title: 'タスクを追加しました', detail: task.title, taskId: createdId }, 5000);
   };
 
   return (
     <div className="relative space-y-4">
-      {createdToast ? (
+      {boardToast ? (
         <button
           type="button"
-          onClick={() => jumpToCreatedTask(createdToast.taskId)}
-          className="fixed right-3 top-[calc(env(safe-area-inset-top)+76px)] z-[120] max-w-[calc(100vw-1.5rem)] rounded-xl border border-gray-200 bg-white px-3 py-2 text-left shadow-2xl transition hover:bg-gray-50 sm:right-5 sm:top-20 sm:max-w-sm"
+          onClick={() => boardToast.taskId ? jumpToToastTask(boardToast.taskId) : dismissBoardToast()}
+          className={`toast-float fixed right-3 top-[calc(env(safe-area-inset-top)+76px)] z-[120] max-w-[calc(100vw-1.5rem)] rounded-xl border border-gray-200 bg-white px-3 py-2 text-left shadow-2xl transition hover:bg-gray-50 sm:right-5 sm:top-20 sm:max-w-sm ${boardToastClosing ? 'is-leaving' : ''}`}
         >
           <div className="flex items-start gap-2">
             <Check size={16} className="mt-0.5 shrink-0 text-gray-500" />
             <div className="min-w-0">
-              <div className="text-xs font-bold text-gray-700">タスクを追加しました</div>
-              <div className="mt-0.5 truncate text-xs text-gray-500">{createdToast.title}</div>
+              <div className="text-xs font-bold text-gray-700">{boardToast.title}</div>
+              {boardToast.detail ? <div className="mt-0.5 truncate text-xs text-gray-500">{boardToast.detail}</div> : null}
             </div>
           </div>
         </button>
@@ -1656,7 +1675,7 @@ function BoardView({ board, settings, tasks, sourceBoards = [], onAddTask, onUpd
               <div className={`collapsible-grid ${!isCollapsed ? 'is-open' : ''}`}>
                 <div className="collapsible-inner">
                 <div className="space-y-3 sm:space-y-4 min-h-[100px] mt-3">
-                  {columnTasks.map((task) => <TaskCard key={`${task.sourceBoardId || board.id}-${task.id}`} task={task} settings={settings} onUpdate={(_, updates) => onUpdateTask(task, updates)} onTrash={() => onTrashTask(task)} onArchive={() => onArchiveTask(task)} onCreateRecurrence={onCreateRecurrence} onDragStart={() => !disableStatus && setDraggedTask(task)} onOpenSourceTask={onOpenSourceTask} highlighted={highlightedTaskId === task.id} disableDelete={disableDelete} disableStatus={disableStatus} />)}
+                  {columnTasks.map((task) => <TaskCard key={`${task.sourceBoardId || board.id}-${task.id}`} task={task} settings={settings} onUpdate={(_, updates) => onUpdateTask(task, updates)} onTrash={() => { onTrashTask(task); showBoardToast({ title: 'ゴミ箱へ移動しました', detail: task.title }); }} onArchive={() => { onArchiveTask(task); showBoardToast({ title: 'アーカイブしました', detail: task.title }); }} onCreateRecurrence={onCreateRecurrence} onDragStart={() => !disableStatus && setDraggedTask(task)} onOpenSourceTask={onOpenSourceTask} highlighted={highlightedTaskId === task.id} disableDelete={disableDelete} disableStatus={disableStatus} />)}
                   {columnTasks.length === 0 ? (
                     <div className="rounded-lg border-2 border-dashed border-gray-200 bg-gray-50/50 px-3 py-6 text-center">
                       <div className="text-sm text-gray-400">タスクはありません</div>
@@ -2144,6 +2163,7 @@ function BoardSettingsModal({
   onLeaveBoard,
   onUpdateTask,
   onOpenSourceBoard,
+  onJumpToTask,
   onGenerateRecurrence,
   onRestore,
   onRestoreTask,
@@ -2167,6 +2187,7 @@ function BoardSettingsModal({
   onLeaveBoard: () => void;
   onUpdateTask: (taskId: string, updates: Partial<Task>) => void;
   onOpenSourceBoard?: (boardId: string) => void;
+  onJumpToTask?: (taskId: string) => void;
   onGenerateRecurrence: (rule: RecurrenceRule) => void;
   onRestore: (data: BackupData, mode: 'append' | 'replace') => void;
   onRestoreTask: (taskId: string) => void;
@@ -2193,6 +2214,10 @@ function BoardSettingsModal({
   const [restoreData, setRestoreData] = useState<BackupData | null>(null);
   const [restoreFileName, setRestoreFileName] = useState('');
   const [restoreError, setRestoreError] = useState('');
+  const [settingsToast, setSettingsToast] = useState<{ title: string; detail?: string; taskId?: string } | null>(null);
+  const [settingsToastClosing, setSettingsToastClosing] = useState(false);
+  const settingsToastTimerRef = useRef<number | null>(null);
+  const settingsToastExitTimerRef = useRef<number | null>(null);
   const isAggregate = board.kind === 'aggregate';
   const [showReorderHint, setShowReorderHint] = useState(() => localStorage.getItem('simple-task-board-reorder-hint-dismissed') !== '1');
 
@@ -2211,7 +2236,16 @@ function BoardSettingsModal({
     setRestoreData(null);
     setRestoreFileName('');
     setRestoreError('');
+    setSettingsToast(null);
+    setSettingsToastClosing(false);
   }, [board.title, open]);
+
+  useEffect(() => {
+    return () => {
+      if (settingsToastTimerRef.current !== null) window.clearTimeout(settingsToastTimerRef.current);
+      if (settingsToastExitTimerRef.current !== null) window.clearTimeout(settingsToastExitTimerRef.current);
+    };
+  }, []);
 
   if (!open) return null;
 
@@ -2258,6 +2292,35 @@ function BoardSettingsModal({
     new Notification('Simple Task Board', {
       body: '通知テストです。期日が近いタスクもこのように通知されます。',
     });
+  };
+
+  const dismissSettingsToast = () => {
+    if (settingsToastTimerRef.current !== null) window.clearTimeout(settingsToastTimerRef.current);
+    if (settingsToastExitTimerRef.current !== null) window.clearTimeout(settingsToastExitTimerRef.current);
+    setSettingsToastClosing(true);
+    settingsToastExitTimerRef.current = window.setTimeout(() => {
+      setSettingsToast(null);
+      setSettingsToastClosing(false);
+      settingsToastExitTimerRef.current = null;
+    }, 160);
+  };
+
+  const showSettingsToast = (toast: { title: string; detail?: string; taskId?: string }, duration = 4200) => {
+    if (settingsToastTimerRef.current !== null) window.clearTimeout(settingsToastTimerRef.current);
+    if (settingsToastExitTimerRef.current !== null) window.clearTimeout(settingsToastExitTimerRef.current);
+    setSettingsToast(toast);
+    setSettingsToastClosing(false);
+    settingsToastTimerRef.current = window.setTimeout(() => {
+      settingsToastTimerRef.current = null;
+      dismissSettingsToast();
+    }, duration);
+  };
+
+  const handleSettingsToastClick = () => {
+    if (settingsToast?.taskId) {
+      onJumpToTask?.(settingsToast.taskId);
+    }
+    dismissSettingsToast();
   };
 
   const downloadBackup = () => {
@@ -2332,6 +2395,7 @@ function BoardSettingsModal({
       assignees: settings.assignees.filter((item) => item.id !== assignee.id),
       deletedAssignees: [...deletedAssignees.filter((item) => item.id !== assignee.id), assignee],
     });
+    showSettingsToast({ title: '担当者をゴミ箱へ移動しました', detail: assignee.name });
   };
 
   const addStatus = (event: FormEvent) => {
@@ -2376,6 +2440,7 @@ function BoardSettingsModal({
       statuses: settings.statuses.filter((item) => item.id !== status.id),
       deletedStatuses: [...deletedStatuses.filter((item) => item.id !== status.id), status],
     });
+    showSettingsToast({ title: 'ステータスをゴミ箱へ移動しました', detail: status.title });
   };
 
   const restoreSubtask = (parentTaskId: string, subtaskId: string) => {
@@ -2384,14 +2449,18 @@ function BoardSettingsModal({
     onUpdateTask(parentTaskId, {
       subtasks: parentTask.subtasks.map((subtask) => (subtask.id === subtaskId ? { ...subtask, deletedAt: null } : subtask)),
     });
+    const subtask = parentTask.subtasks.find((item) => item.id === subtaskId);
+    showSettingsToast({ title: 'サブタスクを復元しました', detail: subtask?.text, taskId: parentTaskId });
   };
 
   const hardDeleteSubtask = (parentTaskId: string, subtaskId: string) => {
     const parentTask = tasks.find((task) => task.id === parentTaskId);
     if (!parentTask) return;
+    const subtask = parentTask.subtasks.find((item) => item.id === subtaskId);
     onUpdateTask(parentTaskId, {
       subtasks: parentTask.subtasks.filter((subtask) => subtask.id !== subtaskId),
     });
+    showSettingsToast({ title: 'サブタスクを完全に削除しました', detail: subtask?.text });
   };
 
   const clearDragTimer = () => {
@@ -2450,6 +2519,21 @@ function BoardSettingsModal({
 
   return (
     <div className="modal-backdrop fixed inset-0 z-[150] flex items-center justify-center bg-black/50 p-4">
+      {settingsToast ? (
+        <button
+          type="button"
+          onClick={handleSettingsToastClick}
+          className={`toast-float fixed right-3 top-[calc(env(safe-area-inset-top)+76px)] z-[230] max-w-[calc(100vw-1.5rem)] rounded-xl border border-gray-200 bg-white px-3 py-2 text-left shadow-2xl transition hover:bg-gray-50 sm:right-5 sm:top-20 sm:max-w-sm ${settingsToastClosing ? 'is-leaving' : ''}`}
+        >
+          <div className="flex items-start gap-2">
+            <Check size={16} className="mt-0.5 shrink-0 text-gray-500" />
+            <div className="min-w-0">
+              <div className="text-sm font-bold text-gray-800">{settingsToast.title}</div>
+              {settingsToast.detail ? <div className="mt-0.5 truncate text-xs text-gray-500">{settingsToast.detail}</div> : null}
+            </div>
+          </div>
+        </button>
+      ) : null}
       <div className="modal-float flex max-h-[90vh] w-full max-w-xl flex-col rounded-2xl bg-white p-5 shadow-2xl sm:p-6">
         <div className="mb-4 flex items-center justify-between gap-3">
           <h2 className="flex items-center gap-2 text-lg font-bold text-gray-900"><Settings size={20} className="text-gray-500" />ボード設定</h2>
@@ -2612,7 +2696,17 @@ function BoardSettingsModal({
                       <div className="mt-3 grid grid-cols-3 gap-1.5">
                         <button type="button" disabled={!isOwner} onClick={() => onGenerateRecurrence(rule)} className="rounded-lg border border-gray-300 bg-white px-2 py-1.5 text-xs font-bold text-gray-600 hover:bg-gray-50 disabled:opacity-40">今すぐ生成</button>
                         <button type="button" disabled={!isOwner} onClick={() => onUpdateSettings({ recurrenceRules: (settings.recurrenceRules || []).map((item) => item.id === rule.id ? { ...item, enabled: !item.enabled, updatedAt: Date.now() } : item) })} className="rounded-lg border border-gray-300 bg-white px-2 py-1.5 text-xs font-bold text-gray-600 hover:bg-gray-50 disabled:opacity-40">{rule.enabled ? '停止' : '再開'}</button>
-                        <button type="button" disabled={!isOwner} onClick={() => onUpdateSettings({ recurrenceRules: (settings.recurrenceRules || []).filter((item) => item.id !== rule.id), deletedRecurrenceRules: [...deletedRecurrenceRules.filter((item) => item.id !== rule.id), { ...rule, enabled: false, updatedAt: Date.now() }] })} className="rounded-lg border border-red-200 bg-red-50 px-2 py-1.5 text-xs font-bold text-red-600 hover:bg-red-100 disabled:opacity-40">削除</button>
+                        <button
+                          type="button"
+                          disabled={!isOwner}
+                          onClick={() => {
+                            onUpdateSettings({ recurrenceRules: (settings.recurrenceRules || []).filter((item) => item.id !== rule.id), deletedRecurrenceRules: [...deletedRecurrenceRules.filter((item) => item.id !== rule.id), { ...rule, enabled: false, updatedAt: Date.now() }] });
+                            showSettingsToast({ title: '繰り返し設定をゴミ箱へ移動しました', detail: rule.title });
+                          }}
+                          className="rounded-lg border border-red-200 bg-red-50 px-2 py-1.5 text-xs font-bold text-red-600 hover:bg-red-100 disabled:opacity-40"
+                        >
+                          削除
+                        </button>
                       </div>
                     </div>
                   ))}
@@ -2789,10 +2883,46 @@ function BoardSettingsModal({
                 </label>
               </div>
               <div className="grid gap-2 sm:grid-cols-2">
-                <button type="button" disabled={selectedArchiveIds.length === 0} onClick={() => { selectedArchiveIds.forEach((id) => onUpdateTask(id, { archivedAt: null })); setSelectedArchiveIds([]); }} className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50 disabled:opacity-40">選択を復元</button>
-                <button type="button" disabled={selectedArchiveIds.length === 0} onClick={() => { selectedArchiveIds.forEach((id) => onUpdateTask(id, { deletedAt: Date.now(), archivedAt: null })); setSelectedArchiveIds([]); }} className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm font-medium text-red-600 shadow-sm hover:bg-red-100 disabled:opacity-40">選択をゴミ箱へ</button>
+                <button
+                  type="button"
+                  disabled={selectedArchiveIds.length === 0}
+                  onClick={() => {
+                    const count = selectedArchiveIds.length;
+                    const taskId = count === 1 ? selectedArchiveIds[0] : undefined;
+                    selectedArchiveIds.forEach((id) => onUpdateTask(id, { archivedAt: null }));
+                    setSelectedArchiveIds([]);
+                    showSettingsToast({ title: 'アーカイブから復元しました', detail: `${count}件`, taskId });
+                  }}
+                  className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50 disabled:opacity-40"
+                >
+                  選択を復元
+                </button>
+                <button
+                  type="button"
+                  disabled={selectedArchiveIds.length === 0}
+                  onClick={() => {
+                    const count = selectedArchiveIds.length;
+                    selectedArchiveIds.forEach((id) => onUpdateTask(id, { deletedAt: Date.now(), archivedAt: null }));
+                    setSelectedArchiveIds([]);
+                    showSettingsToast({ title: 'ゴミ箱へ移動しました', detail: `${count}件` });
+                  }}
+                  className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm font-medium text-red-600 shadow-sm hover:bg-red-100 disabled:opacity-40"
+                >
+                  選択をゴミ箱へ
+                </button>
               </div>
-              <button type="button" disabled={!doneTasks.length} onClick={() => doneTasks.forEach((task) => onUpdateTask(task.id, { archivedAt: Date.now() }))} className="flex w-full items-center justify-center gap-2 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50 disabled:opacity-40"><Archive size={16} />完了タスクをアーカイブへ</button>
+              <button
+                type="button"
+                disabled={!doneTasks.length}
+                onClick={() => {
+                  const count = doneTasks.length;
+                  doneTasks.forEach((task) => onUpdateTask(task.id, { archivedAt: Date.now() }));
+                  showSettingsToast({ title: '完了タスクをアーカイブしました', detail: `${count}件` });
+                }}
+                className="flex w-full items-center justify-center gap-2 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50 disabled:opacity-40"
+              >
+                <Archive size={16} />完了タスクをアーカイブへ
+              </button>
 
               <section className="border-t border-gray-200 pt-4">
                 <div className="space-y-2">
@@ -2816,7 +2946,18 @@ function BoardSettingsModal({
           ) : (
             <>
               <div className="grid gap-2 sm:grid-cols-2">
-                <button type="button" onClick={onEmptyDone} disabled={!doneTasks.length} className="flex items-center justify-center gap-2 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50 disabled:opacity-40"><Trash2 size={16} />完了タスクをゴミ箱へ</button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const count = doneTasks.length;
+                    onEmptyDone();
+                    showSettingsToast({ title: '完了タスクをゴミ箱へ移動しました', detail: `${count}件` });
+                  }}
+                  disabled={!doneTasks.length}
+                  className="flex items-center justify-center gap-2 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50 disabled:opacity-40"
+                >
+                  <Trash2 size={16} />完了タスクをゴミ箱へ
+                </button>
                 <button type="button" onClick={() => setConfirmEmptyTrash(true)} disabled={!trashCount || !isOwner} className="flex items-center justify-center gap-2 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm font-medium text-red-600 shadow-sm hover:bg-red-100 disabled:opacity-40"><Trash2 size={16} />ゴミ箱を空にする</button>
               </div>
 
@@ -2831,8 +2972,29 @@ function BoardSettingsModal({
                         <div className="text-[10px] text-gray-400">削除日時: {task.deletedAt ? formatDateTime(task.deletedAt) : '-'}</div>
                       </div>
                       <div className="flex shrink-0 gap-1.5">
-                        <button type="button" onClick={() => onRestoreTask(task.id)} className="flex items-center gap-1 rounded border border-gray-300 bg-white px-2 py-1.5 text-xs text-gray-600 shadow-sm hover:bg-gray-100"><RotateCcw size={12} />復元</button>
-                        <button type="button" onClick={() => { if (confirm('このタスクを完全に削除しますか？')) onHardDeleteTask(task.id); }} className="rounded border border-red-200 bg-red-50 px-2 py-1.5 text-xs text-red-600 shadow-sm hover:bg-red-100" title="完全に削除"><Trash2 size={12} /></button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            onRestoreTask(task.id);
+                            showSettingsToast({ title: 'タスクを復元しました', detail: task.title, taskId: task.id });
+                          }}
+                          className="flex items-center gap-1 rounded border border-gray-300 bg-white px-2 py-1.5 text-xs text-gray-600 shadow-sm hover:bg-gray-100"
+                        >
+                          <RotateCcw size={12} />復元
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (confirm('このタスクを完全に削除しますか？')) {
+                              onHardDeleteTask(task.id);
+                              showSettingsToast({ title: 'タスクを完全に削除しました', detail: task.title });
+                            }
+                          }}
+                          className="rounded border border-red-200 bg-red-50 px-2 py-1.5 text-xs text-red-600 shadow-sm hover:bg-red-100"
+                          title="完全に削除"
+                        >
+                          <Trash2 size={12} />
+                        </button>
                       </div>
                     </div>
                   ))}
@@ -2866,8 +3028,29 @@ function BoardSettingsModal({
                     <div key={assignee.id} className="flex items-center justify-between gap-3 rounded border border-gray-200 bg-gray-50 px-3 py-2">
                       <span className="truncate text-sm text-gray-600 line-through">{assignee.name}</span>
                       <div className="flex shrink-0 gap-1.5">
-                        <button type="button" onClick={() => onUpdateSettings({ assignees: [...settings.assignees, assignee], deletedAssignees: deletedAssignees.filter((item) => item.id !== assignee.id) })} className="flex items-center gap-1 rounded border border-gray-300 bg-white px-2 py-1.5 text-xs text-gray-600 shadow-sm hover:bg-gray-100"><RotateCcw size={12} />復元</button>
-                        <button type="button" onClick={() => { if (confirm('この担当者を完全に削除しますか？')) onUpdateSettings({ deletedAssignees: deletedAssignees.filter((item) => item.id !== assignee.id) }); }} className="rounded border border-red-200 bg-red-50 px-2 py-1.5 text-xs text-red-600 shadow-sm hover:bg-red-100" title="完全に削除"><Trash2 size={12} /></button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            onUpdateSettings({ assignees: [...settings.assignees, assignee], deletedAssignees: deletedAssignees.filter((item) => item.id !== assignee.id) });
+                            showSettingsToast({ title: '担当者を復元しました', detail: assignee.name });
+                          }}
+                          className="flex items-center gap-1 rounded border border-gray-300 bg-white px-2 py-1.5 text-xs text-gray-600 shadow-sm hover:bg-gray-100"
+                        >
+                          <RotateCcw size={12} />復元
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (confirm('この担当者を完全に削除しますか？')) {
+                              onUpdateSettings({ deletedAssignees: deletedAssignees.filter((item) => item.id !== assignee.id) });
+                              showSettingsToast({ title: '担当者を完全に削除しました', detail: assignee.name });
+                            }
+                          }}
+                          className="rounded border border-red-200 bg-red-50 px-2 py-1.5 text-xs text-red-600 shadow-sm hover:bg-red-100"
+                          title="完全に削除"
+                        >
+                          <Trash2 size={12} />
+                        </button>
                       </div>
                     </div>
                   ))}
@@ -2885,8 +3068,29 @@ function BoardSettingsModal({
                         <div className="truncate text-[10px] text-gray-400">{recurrenceLabel(rule)}</div>
                       </div>
                       <div className="flex shrink-0 gap-1.5">
-                        <button type="button" onClick={() => onUpdateSettings({ recurrenceRules: [...(settings.recurrenceRules || []), { ...rule, enabled: true, updatedAt: Date.now() }], deletedRecurrenceRules: deletedRecurrenceRules.filter((item) => item.id !== rule.id) })} className="flex items-center gap-1 rounded border border-gray-300 bg-white px-2 py-1.5 text-xs text-gray-600 shadow-sm hover:bg-gray-100"><RotateCcw size={12} />復元</button>
-                        <button type="button" onClick={() => { if (confirm('この繰り返し設定を完全に削除しますか？')) onUpdateSettings({ deletedRecurrenceRules: deletedRecurrenceRules.filter((item) => item.id !== rule.id) }); }} className="rounded border border-red-200 bg-red-50 px-2 py-1.5 text-xs text-red-600 shadow-sm hover:bg-red-100" title="完全に削除"><Trash2 size={12} /></button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            onUpdateSettings({ recurrenceRules: [...(settings.recurrenceRules || []), { ...rule, enabled: true, updatedAt: Date.now() }], deletedRecurrenceRules: deletedRecurrenceRules.filter((item) => item.id !== rule.id) });
+                            showSettingsToast({ title: '繰り返し設定を復元しました', detail: rule.title });
+                          }}
+                          className="flex items-center gap-1 rounded border border-gray-300 bg-white px-2 py-1.5 text-xs text-gray-600 shadow-sm hover:bg-gray-100"
+                        >
+                          <RotateCcw size={12} />復元
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (confirm('この繰り返し設定を完全に削除しますか？')) {
+                              onUpdateSettings({ deletedRecurrenceRules: deletedRecurrenceRules.filter((item) => item.id !== rule.id) });
+                              showSettingsToast({ title: '繰り返し設定を完全に削除しました', detail: rule.title });
+                            }
+                          }}
+                          className="rounded border border-red-200 bg-red-50 px-2 py-1.5 text-xs text-red-600 shadow-sm hover:bg-red-100"
+                          title="完全に削除"
+                        >
+                          <Trash2 size={12} />
+                        </button>
                       </div>
                     </div>
                   ))}
@@ -2901,8 +3105,29 @@ function BoardSettingsModal({
                     <div key={status.id} className="flex items-center justify-between gap-3 rounded border border-gray-200 bg-gray-50 px-3 py-2">
                       <span className="truncate text-sm text-gray-600 line-through">{status.title}</span>
                       <div className="flex shrink-0 gap-1.5">
-                        <button type="button" onClick={() => onUpdateSettings({ statuses: [...settings.statuses, status], deletedStatuses: deletedStatuses.filter((item) => item.id !== status.id) })} className="flex items-center gap-1 rounded border border-gray-300 bg-white px-2 py-1.5 text-xs text-gray-600 shadow-sm hover:bg-gray-100"><RotateCcw size={12} />復元</button>
-                        <button type="button" onClick={() => { if (confirm('このステータスを完全に削除しますか？')) onUpdateSettings({ deletedStatuses: deletedStatuses.filter((item) => item.id !== status.id) }); }} className="rounded border border-red-200 bg-red-50 px-2 py-1.5 text-xs text-red-600 shadow-sm hover:bg-red-100" title="完全に削除"><Trash2 size={12} /></button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            onUpdateSettings({ statuses: [...settings.statuses, status], deletedStatuses: deletedStatuses.filter((item) => item.id !== status.id) });
+                            showSettingsToast({ title: 'ステータスを復元しました', detail: status.title });
+                          }}
+                          className="flex items-center gap-1 rounded border border-gray-300 bg-white px-2 py-1.5 text-xs text-gray-600 shadow-sm hover:bg-gray-100"
+                        >
+                          <RotateCcw size={12} />復元
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (confirm('このステータスを完全に削除しますか？')) {
+                              onUpdateSettings({ deletedStatuses: deletedStatuses.filter((item) => item.id !== status.id) });
+                              showSettingsToast({ title: 'ステータスを完全に削除しました', detail: status.title });
+                            }
+                          }}
+                          className="rounded border border-red-200 bg-red-50 px-2 py-1.5 text-xs text-red-600 shadow-sm hover:bg-red-100"
+                          title="完全に削除"
+                        >
+                          <Trash2 size={12} />
+                        </button>
                       </div>
                     </div>
                   ))}
@@ -2929,8 +3154,10 @@ function BoardSettingsModal({
               <button
                 type="button"
                 onClick={() => {
+                  const count = trashCount;
                   onEmptyTrash();
                   setConfirmEmptyTrash(false);
+                  showSettingsToast({ title: 'ゴミ箱を空にしました', detail: `${count}件` });
                 }}
                 className="rounded-lg bg-red-600 px-3 py-2 text-sm font-bold text-white shadow-sm hover:bg-red-700"
               >
@@ -3825,6 +4052,12 @@ export default function App() {
           }}
           onUpdateTask={(taskId, updates) => (isGuestMode ? updateLocalTask(currentBoard.id, taskId, updates) : updateTask(currentBoard.id, taskId, updates))}
           onOpenSourceBoard={openSourceBoard}
+          onJumpToTask={(taskId) => {
+            setBoardSettingsOpen(false);
+            setTab('board');
+            setHighlightedTaskId(taskId);
+            window.setTimeout(() => setHighlightedTaskId(null), 2600);
+          }}
           onGenerateRecurrence={generateRecurrenceTask}
           onRestore={(data, mode) => (isGuestMode ? restoreLocalBackup(currentBoard.id, data, mode) : restoreBackup(currentBoard.id, data, mode))}
           onRestoreTask={(taskId) => (isGuestMode ? updateLocalTask(currentBoard.id, taskId, { deletedAt: null }) : updateTask(currentBoard.id, taskId, { deletedAt: null }))}
