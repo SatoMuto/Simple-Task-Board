@@ -23,7 +23,7 @@ export const defaultSettings: BoardSettings = {
   recurrenceRules: [],
   deletedRecurrenceRules: [],
   autoArchiveDone: false,
-  defaultCollapsed: true,
+  defaultCollapsed: false,
   darkMode: false,
   notificationsEnabled: true,
   browserNotificationsEnabled: false,

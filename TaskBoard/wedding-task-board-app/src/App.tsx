@@ -25,6 +25,7 @@ import {
   Menu,
   MessageSquare,
   MoreHorizontal,
+  Moon,
   Pencil,
   Plus,
   HelpCircle,
@@ -904,9 +905,9 @@ function TaskCard({
       ) : null}
 
       {isActionMenuOpen ? (
-        <div className="fixed inset-0 z-[150] flex items-end justify-center bg-black/35 p-3 sm:items-center">
+        <div className="fixed inset-0 z-[190] flex items-center justify-center bg-black/40 p-4">
           <button type="button" className="absolute inset-0 cursor-default" onClick={() => setIsActionMenuOpen(false)} aria-label="タスクメニューを閉じる" />
-          <div className="relative w-full max-w-sm rounded-2xl border border-gray-200 bg-white p-4 shadow-2xl">
+          <div className="custom-scrollbar relative max-h-[84vh] w-full max-w-sm overflow-y-auto rounded-2xl border border-gray-200 bg-white p-4 shadow-2xl">
             <div className="mb-3 flex items-start justify-between gap-3">
               <div className="min-w-0">
                 <div className="break-words text-base font-bold leading-snug text-gray-800">{task.title}</div>
@@ -986,9 +987,9 @@ function TaskCard({
               <Trash2 size={17} />ゴミ箱へ移動
             </button> : null}
             {recurrenceFromTaskOpen ? (
-              <div className="fixed inset-0 z-[170] flex items-end justify-center bg-black/45 p-3 sm:items-center">
+              <div className="fixed inset-0 z-[210] flex items-center justify-center bg-black/45 p-4">
                 <button type="button" className="absolute inset-0 cursor-default" onClick={() => setRecurrenceFromTaskOpen(false)} aria-label="繰り返し設定を閉じる" />
-                <div className="relative w-full max-w-sm rounded-2xl border border-gray-200 bg-white p-4 shadow-2xl">
+                <div className="custom-scrollbar relative max-h-[84vh] w-full max-w-sm overflow-y-auto rounded-2xl border border-gray-200 bg-white p-4 shadow-2xl">
                   <div className="mb-3 flex items-center justify-between gap-3">
                     <h3 className="flex items-center gap-2 text-base font-bold text-gray-800"><Repeat size={18} className="text-gray-500" />繰り返しタスクにする</h3>
                     <button type="button" onClick={() => setRecurrenceFromTaskOpen(false)} className="rounded-full p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-700"><X size={17} /></button>
@@ -1062,13 +1063,16 @@ function TaskCard({
           </div>
           {isEditingPriority ? (
             <>
-              <button className="fixed inset-0 z-[50] cursor-default" onClick={() => setIsEditingPriority(false)} aria-label="優先度編集を閉じる" />
-              <div className="absolute top-[120%] left-1/2 -translate-x-1/2 w-[260px] max-w-[80vw] bg-white p-2.5 rounded-xl shadow-[0_8px_30px_rgb(0,0,0,0.12)] border border-gray-200 flex items-center gap-2 sm:gap-3 z-[60] animate-in zoom-in-95 duration-200">
-                <input type="range" min="0" max="100" value={tempPriority} onChange={(event) => setTempPriority(Number(event.target.value))} className="range flex-1 min-w-0" style={{ '--range-color': priorityColor(tempPriority), '--range-bg': `linear-gradient(to right, ${priorityColor(tempPriority)} ${tempPriority}%, #e5e7eb ${tempPriority}%)` } as CSSProperties} />
-                <span className="text-[11px] sm:text-xs font-bold w-5 sm:w-6 shrink-0 text-right" style={{ color: priorityColor(tempPriority) }}>{tempPriority}</span>
-                <div className="flex items-center gap-1 sm:gap-1.5 shrink-0">
-                  <button type="button" onClick={() => { onUpdate(task.id, { priority: tempPriority }); setIsEditingPriority(false); }} className="p-1.5 bg-gray-800 text-white rounded-md hover:bg-gray-700 shadow-sm"><Check size={16} strokeWidth={3} /></button>
-                  <button type="button" onClick={() => setIsEditingPriority(false)} className="p-1.5 bg-white border border-gray-300 text-gray-500 rounded-md hover:bg-gray-50 shadow-sm"><X size={16} strokeWidth={3} /></button>
+              <button className="fixed inset-0 z-[190] cursor-default bg-black/40" onClick={() => setIsEditingPriority(false)} aria-label="優先度編集を閉じる" />
+              <div className="fixed left-1/2 top-1/2 z-[200] w-[min(calc(100vw-2rem),22rem)] -translate-x-1/2 -translate-y-1/2 rounded-2xl border border-gray-200 bg-white p-4 shadow-2xl">
+                <div className="mb-3 text-sm font-bold text-gray-700">優先度</div>
+                <div className="flex items-center gap-3">
+                  <input type="range" min="0" max="100" value={tempPriority} onChange={(event) => setTempPriority(Number(event.target.value))} className="range flex-1 min-w-0" style={{ '--range-color': priorityColor(tempPriority), '--range-bg': `linear-gradient(to right, ${priorityColor(tempPriority)} ${tempPriority}%, #e5e7eb ${tempPriority}%)` } as CSSProperties} />
+                  <span className="w-7 text-right text-xs font-bold" style={{ color: priorityColor(tempPriority) }}>{tempPriority}</span>
+                </div>
+                <div className="mt-4 grid grid-cols-2 gap-2">
+                  <button type="button" onClick={() => setIsEditingPriority(false)} className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-xs font-bold text-gray-500 hover:bg-gray-50">戻る</button>
+                  <button type="button" onClick={() => { onUpdate(task.id, { priority: tempPriority }); setIsEditingPriority(false); }} className="rounded-lg bg-gray-800 px-3 py-2 text-xs font-bold text-white hover:bg-gray-700">決定</button>
                 </div>
               </div>
             </>
@@ -1159,10 +1163,10 @@ function SelectSheet({ label, value, options, onChange, size = 'sm', disabled = 
       </button>
       {open ? (
         <>
-          <button type="button" className="fixed inset-0 z-[160] cursor-default bg-black/35" onClick={() => setOpen(false)} aria-label="閉じる" />
-          <div className="fixed bottom-0 left-0 right-0 z-[170] max-h-[72vh] rounded-t-2xl bg-white p-3 pb-[calc(env(safe-area-inset-bottom)+20px)] shadow-2xl md:bottom-auto md:left-1/2 md:top-1/2 md:w-72 md:-translate-x-1/2 md:-translate-y-1/2 md:rounded-2xl md:border md:border-gray-200 md:p-4">
+          <button type="button" className="fixed inset-0 z-[190] cursor-default bg-black/40" onClick={() => setOpen(false)} aria-label="閉じる" />
+          <div className="fixed left-1/2 top-1/2 z-[200] w-[min(calc(100vw-2rem),22rem)] max-h-[80vh] -translate-x-1/2 -translate-y-1/2 overflow-hidden rounded-2xl border border-gray-200 bg-white p-4 shadow-2xl">
             <div className="mb-2 px-2 text-xs font-bold text-gray-500">{label}</div>
-            <div className="max-h-[56vh] overflow-y-auto custom-scrollbar">
+            <div className="custom-scrollbar max-h-[64vh] overflow-y-auto">
               {options.map((option) => (
                 <button
                   type="button"
@@ -1192,17 +1196,17 @@ function SortSheetTrigger({ value, onChange }: { value: string; onChange: (value
   const [open, setOpen] = useState(false);
   const current = sortOptions.find((option) => option.value === value)?.label || '追加日時が新しい順';
   return (
-    <div className="relative w-[142px] shrink-0 sm:w-[150px]">
+    <div className="relative w-[142px] shrink-0 sm:w-[150px]" onClick={(event) => event.stopPropagation()}>
       <button type="button" onClick={() => setOpen(true)} className="flex w-full items-center justify-end gap-1 bg-transparent text-[10px] font-medium text-gray-500 hover:text-gray-800 sm:text-[11px]" title="並び替え">
         <span className="min-w-0 truncate text-right">{current}</span>
         <ChevronDown size={13} className="shrink-0 text-gray-400" />
       </button>
       {open ? (
         <>
-          <button type="button" className="fixed inset-0 z-[160] cursor-default bg-black/35" onClick={() => setOpen(false)} aria-label="閉じる" />
-          <div className="fixed bottom-0 left-0 right-0 z-[170] max-h-[72vh] rounded-t-2xl bg-white p-3 pb-[calc(env(safe-area-inset-bottom)+20px)] shadow-2xl md:bottom-auto md:left-1/2 md:top-1/2 md:w-72 md:-translate-x-1/2 md:-translate-y-1/2 md:rounded-2xl md:border md:border-gray-200 md:p-4">
+          <button type="button" className="fixed inset-0 z-[190] cursor-default bg-black/40" onClick={() => setOpen(false)} aria-label="閉じる" />
+          <div className="fixed left-1/2 top-1/2 z-[200] w-[min(calc(100vw-2rem),22rem)] max-h-[80vh] -translate-x-1/2 -translate-y-1/2 overflow-hidden rounded-2xl border border-gray-200 bg-white p-4 shadow-2xl">
             <div className="mb-2 px-2 text-xs font-bold text-gray-500">並び替え</div>
-            <div className="max-h-[56vh] overflow-y-auto custom-scrollbar">
+            <div className="custom-scrollbar max-h-[64vh] overflow-y-auto">
               {sortOptions.map((option) => (
                 <button
                   type="button"
@@ -1259,8 +1263,8 @@ function PriorityFilterButton({ label, value, onChange }: { label: string; value
       </button>
       {open ? (
         <>
-          <button className="fixed inset-0 z-[160] cursor-default bg-black/35" onClick={() => setOpen(false)} aria-label={`${label}編集を閉じる`} />
-          <div className="fixed bottom-0 left-0 right-0 z-[170] rounded-t-2xl bg-white p-4 pb-[calc(env(safe-area-inset-bottom)+20px)] shadow-2xl md:absolute md:bottom-auto md:left-1/2 md:right-auto md:top-[calc(100%+8px)] md:w-72 md:-translate-x-1/2 md:rounded-2xl md:border md:border-gray-200">
+          <button className="fixed inset-0 z-[190] cursor-default bg-black/40" onClick={() => setOpen(false)} aria-label={`${label}編集を閉じる`} />
+          <div className="fixed left-1/2 top-1/2 z-[200] w-[min(calc(100vw-2rem),22rem)] -translate-x-1/2 -translate-y-1/2 rounded-2xl border border-gray-200 bg-white p-4 shadow-2xl">
             <div className="mb-3 text-sm font-bold text-gray-700">{label}</div>
             <div className="flex items-center gap-3">
               <input type="range" min="0" max="100" value={tempPriority} onChange={(event) => setTempPriority(Number(event.target.value))} className="range min-w-0 flex-1" style={{ '--range-color': priorityColor(tempPriority), '--range-bg': `linear-gradient(to right, ${priorityColor(tempPriority)} ${tempPriority}%, #e5e7eb ${tempPriority}%)` } as CSSProperties} />
@@ -1370,7 +1374,7 @@ function AddTaskForm({ settings, onAdd, onCreateRecurrence, prefillDueDate, focu
   };
 
   return (
-    <div id="add-task-form" className="rounded-xl border border-gray-200 bg-white shadow-sm">
+    <div id="add-task-form" className="rounded-xl border border-gray-300 bg-white shadow-md">
       <button
         type="button"
         onClick={() => setCollapsed((value) => !value)}
@@ -1441,8 +1445,8 @@ function AddTaskForm({ settings, onAdd, onCreateRecurrence, prefillDueDate, focu
         </form>
       ) : null}
       {recurrenceOpen ? (
-        <div className="fixed inset-0 z-[160] flex items-end bg-black/45 p-0 sm:items-center sm:justify-center sm:p-4">
-          <div className="w-full rounded-t-2xl bg-white p-5 shadow-2xl sm:max-w-md sm:rounded-2xl">
+        <div className="fixed inset-0 z-[190] flex items-center justify-center bg-black/45 p-4">
+          <div className="custom-scrollbar max-h-[84vh] w-full max-w-md overflow-y-auto rounded-2xl border border-gray-200 bg-white p-5 shadow-2xl">
             <div className="mb-4 flex items-center justify-between gap-3">
               <h3 className="flex items-center gap-2 text-lg font-bold text-gray-800"><Repeat size={20} className="text-gray-500" />繰り返し設定</h3>
               <button type="button" onClick={() => setRecurrenceOpen(false)} className="rounded-full p-2 text-gray-400 hover:bg-gray-100 hover:text-gray-800"><X size={18} /></button>
@@ -1581,12 +1585,12 @@ function BoardView({ board, settings, tasks, sourceBoards = [], onAddTask, onUpd
       <div className="flex flex-col items-start gap-4 overflow-x-auto pb-4 sm:gap-6 md:flex-row">
         {settings.statuses.map((status) => {
           const columnTasks = sortedColumnTasks(status.id);
-          const isCollapsed = collapsed[status.id] ?? settings.defaultCollapsed;
+          const isCollapsed = collapsed[status.id] ?? (settings.defaultCollapsed ?? false);
           const sortOrder = columnSorts[status.id] || 'createdAt-desc';
           return (
             <section key={status.id} style={{ borderColor: translucent(status.color, '55'), boxShadow: `inset 3px 0 0 ${translucent(status.color, '66')}` }} className="w-full md:w-auto flex-1 md:min-w-[360px] bg-gray-50/50 border rounded-xl p-2.5 sm:p-4" onDragOver={(event) => event.preventDefault()} onDrop={() => { if (!disableStatus && draggedTask) onUpdateTask(draggedTask, { statusId: status.id }); setDraggedTask(null); }}>
-              <h2 className="mb-2 pb-2 border-b border-gray-200 flex items-center justify-between">
-                <button type="button" onClick={() => setCollapsed((value) => ({ ...value, [status.id]: !isCollapsed }))} className="flex items-center gap-1.5 font-semibold text-gray-700 cursor-pointer hover:bg-gray-100 rounded px-1 py-1 transition-colors select-none">
+              <h2 onClick={() => setCollapsed((value) => ({ ...value, [status.id]: !isCollapsed }))} className="mb-2 flex cursor-pointer items-center justify-between border-b border-gray-200 pb-2">
+                <button type="button" onClick={(event) => { event.stopPropagation(); setCollapsed((value) => ({ ...value, [status.id]: !isCollapsed })); }} className="flex items-center gap-1.5 font-semibold text-gray-700 cursor-pointer hover:bg-gray-100 rounded px-1 py-1 transition-colors select-none">
                   {isCollapsed ? <ChevronRight size={18} className="text-gray-400" /> : <ChevronDown size={18} className="text-gray-400" />}
                   <span className="h-2.5 w-2.5 shrink-0 rounded-full border border-black/10" style={{ backgroundColor: status.color }} />
                   {status.title}
@@ -1622,7 +1626,7 @@ function BoardView({ board, settings, tasks, sourceBoards = [], onAddTask, onUpd
           setAddTaskFocusSignal(Date.now());
           document.getElementById('add-task-form')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
         }}
-        className="fixed bottom-20 right-4 z-30 flex h-14 w-14 items-center justify-center rounded-full bg-gray-800 text-white shadow-xl transition-transform hover:bg-gray-700 active:scale-95 md:bottom-6 md:right-6"
+        className="fixed bottom-[calc(env(safe-area-inset-bottom)+88px)] right-4 z-30 flex h-14 w-14 items-center justify-center rounded-full bg-gray-800 text-white shadow-xl transition-transform hover:bg-gray-700 active:scale-95 md:bottom-6 md:right-6"
         aria-label="新しいタスクを追加"
       >
         <Plus size={26} strokeWidth={2.5} />
@@ -1673,6 +1677,7 @@ function CalendarView({ tasks, settings, onOpenTask, onCreateTaskForDate }: {
   const [viewMode, setViewMode] = useState<'month' | 'week' | 'list'>('month');
   const [selectedDate, setSelectedDate] = useState(today);
   const [focusedCalendarTaskId, setFocusedCalendarTaskId] = useState<string | null>(null);
+  const swipeStartRef = useRef<{ x: number; y: number } | null>(null);
   const dueTasks = tasks.filter((task) => !task.deletedAt && !task.archivedAt && task.dueDate).sort((a, b) => a.dueDate.localeCompare(b.dueDate));
   const noDueTasks = tasks.filter((task) => !task.deletedAt && !task.archivedAt && !task.dueDate);
   const grouped = dueTasks.reduce<Record<string, Task[]>>((acc, task) => {
@@ -1736,6 +1741,24 @@ function CalendarView({ tasks, settings, onOpenTask, onCreateTaskForDate }: {
     setVisibleMonth(new Date(now.getFullYear(), now.getMonth(), 1));
   };
 
+  const startSwipe = (event: PointerEvent<HTMLDivElement>) => {
+    if (viewMode === 'list') return;
+    if (event.pointerType !== 'touch' && event.pointerType !== 'pen') return;
+    if ((event.target as HTMLElement).closest('button,input,select,textarea,a')) return;
+    swipeStartRef.current = { x: event.clientX, y: event.clientY };
+  };
+
+  const endSwipe = (event: PointerEvent<HTMLDivElement>) => {
+    const start = swipeStartRef.current;
+    swipeStartRef.current = null;
+    if (!start || viewMode === 'list') return;
+    const dx = event.clientX - start.x;
+    const dy = event.clientY - start.y;
+    if (Math.abs(dx) < 70 || Math.abs(dx) < Math.abs(dy) * 1.4) return;
+    if (viewMode === 'month') moveMonth(dx > 0 ? -1 : 1);
+    if (viewMode === 'week') moveWeek(dx > 0 ? -1 : 1);
+  };
+
   const focusMonthTask = (task: Task) => {
     setSelectedDate(task.dueDate);
     setFocusedCalendarTaskId(task.id);
@@ -1746,7 +1769,7 @@ function CalendarView({ tasks, settings, onOpenTask, onCreateTaskForDate }: {
 
   return (
     <div className="space-y-4">
-      <section className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
+      <section className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm" onPointerDown={startSwipe} onPointerUp={endSwipe} onPointerCancel={() => { swipeStartRef.current = null; }}>
         <div className="border-b border-gray-200 bg-gray-50 px-3 py-3 sm:px-4">
           <div className="mb-3 grid grid-cols-3 rounded-lg bg-gray-200 p-1">
             {[
@@ -1935,13 +1958,13 @@ function SearchView({ tasks, settings, onOpenTask }: { tasks: Task[]; settings: 
   };
   return (
     <div className="space-y-4">
-      <section className={`rounded-xl border border-gray-200 bg-white shadow-sm ${filtersOpen ? 'p-3' : 'px-3 py-2.5'}`}>
-        <div className={`flex items-center justify-between gap-2 ${filtersOpen ? 'mb-3' : ''}`}>
-          <button type="button" onClick={() => setFiltersOpen((value) => !value)} className="flex items-center gap-2 text-sm font-bold text-gray-700">
+      <section className={`rounded-xl border border-gray-300 bg-white shadow-md ${filtersOpen ? 'p-3' : 'px-3 py-2.5'}`}>
+        <div onClick={() => setFiltersOpen((value) => !value)} className={`flex cursor-pointer items-center justify-between gap-2 ${filtersOpen ? 'mb-3' : ''}`}>
+          <button type="button" onClick={(event) => { event.stopPropagation(); setFiltersOpen((value) => !value); }} className="flex items-center gap-2 text-sm font-bold text-gray-700">
             <Filter size={16} className="text-gray-500" />絞り込み
             {filtersOpen ? <ChevronDown size={16} className="text-gray-400" /> : <ChevronRight size={16} className="text-gray-400" />}
           </button>
-          <div className="flex items-center gap-1.5">
+          <div className="flex items-center gap-1.5" onClick={(event) => event.stopPropagation()}>
             {filtersOpen ? <button type="button" onClick={() => setFiltersOpen(false)} className="rounded-lg bg-gray-800 px-3 py-1.5 text-xs font-bold text-white shadow-sm hover:bg-gray-700">適用</button> : null}
             <button type="button" onClick={() => { clearFilters(); setFiltersOpen(true); }} className="flex items-center gap-1 rounded-lg border border-gray-300 bg-white px-2 py-1.5 text-xs font-bold text-gray-500 shadow-sm hover:bg-gray-50"><RotateCcw size={13} />リセット</button>
           </div>
@@ -2387,11 +2410,7 @@ function BoardSettingsModal({
               <section className="border-t border-gray-200 pt-4">
                 <label className="flex items-center justify-between rounded-lg bg-gray-50 px-3 py-2 text-sm">
                   ステータスを初期状態で折りたたむ
-                  <input type="checkbox" checked={settings.defaultCollapsed ?? true} disabled={!isOwner} onChange={(event) => onUpdateSettings({ defaultCollapsed: event.target.checked })} />
-                </label>
-                <label className="mt-2 flex items-center justify-between rounded-lg bg-gray-50 px-3 py-2 text-sm">
-                  ダークモード
-                  <input type="checkbox" checked={!!settings.darkMode} disabled={!isOwner} onChange={(event) => onUpdateSettings({ darkMode: event.target.checked })} />
+                  <input type="checkbox" checked={settings.defaultCollapsed ?? false} disabled={!isOwner} onChange={(event) => onUpdateSettings({ defaultCollapsed: event.target.checked })} />
                 </label>
                 <div className="mt-2 rounded-lg bg-gray-50 px-3 py-2">
                   <label className="flex items-center justify-between text-sm">
@@ -2834,26 +2853,43 @@ function BoardSettingsModal({
 
 function SettingsView({
   user,
-  isOwner,
+  boards,
   invites,
   onAcceptInvite,
   onDeclineInvite,
+  onSendInvite,
   onFeedback,
   onShowGuide,
+  darkMode,
+  onToggleDarkMode,
   isGuest,
 }: {
   user: CurrentUser;
-  isOwner: boolean;
+  boards: Board[];
   invites: Invite[];
   onAcceptInvite: (invite: Invite) => void;
   onDeclineInvite: (invite: Invite) => void;
+  onSendInvite: (board: Board, email: string) => void;
   onFeedback: (message: string) => void;
   onShowGuide: () => void;
+  darkMode: boolean;
+  onToggleDarkMode: (enabled: boolean) => void;
   isGuest: boolean;
 }) {
   const [feedback, setFeedback] = useState('');
   const [loginLoading, setLoginLoading] = useState(false);
   const [loginError, setLoginError] = useState('');
+  const [inviteModalOpen, setInviteModalOpen] = useState(false);
+  const [inviteBoardId, setInviteBoardId] = useState('');
+  const [inviteEmail, setInviteEmail] = useState('');
+
+  const ownedBoards = boards.filter((board) => (board.kind || 'board') === 'board' && board.ownerId === user.uid);
+
+  useEffect(() => {
+    if (!inviteModalOpen) return;
+    setInviteBoardId((current) => (current && ownedBoards.some((board) => board.id === current) ? current : ownedBoards[0]?.id || ''));
+    setInviteEmail('');
+  }, [inviteModalOpen, ownedBoards.length]);
 
   const loginWithGoogle = async () => {
     setLoginLoading(true);
@@ -2870,7 +2906,12 @@ function SettingsView({
   return (
     <div className="space-y-4">
       <section className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
-        <h2 className="mb-3 flex items-center gap-2 font-bold text-gray-700"><Bell size={18} className="text-gray-500" />招待</h2>
+        <div className="mb-3 flex items-center justify-between gap-2">
+          <h2 className="flex items-center gap-2 font-bold text-gray-700"><Bell size={18} className="text-gray-500" />招待</h2>
+          <button type="button" onClick={() => setInviteModalOpen(true)} disabled={isGuest || ownedBoards.length === 0} className="flex h-8 items-center gap-1.5 rounded-lg border border-gray-300 bg-white px-2.5 text-xs font-bold text-gray-600 shadow-sm hover:bg-gray-50 disabled:opacity-40">
+            <UserPlus size={14} />招待を送る
+          </button>
+        </div>
         {invites.length ? (
           <div className="space-y-2">
             {invites.map((invite) => (
@@ -2887,8 +2928,17 @@ function SettingsView({
         ) : (
           <div className="rounded-lg border border-dashed border-gray-200 bg-gray-50 px-3 py-5 text-center text-sm text-gray-400">
             現在の招待はありません。
+            <div className="mt-1 text-xs">{isGuest ? '招待を送るにはGoogleログインが必要です。' : '自分のボードから招待を送れます。'}</div>
           </div>
         )}
+      </section>
+
+      <section className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
+        <h2 className="mb-3 flex items-center gap-2 font-bold text-gray-700"><Moon size={18} className="text-gray-500" />表示</h2>
+        <label className="flex items-center justify-between rounded-lg bg-gray-50 px-3 py-2 text-sm text-gray-700">
+          ダークモード
+          <input type="checkbox" checked={darkMode} onChange={(event) => onToggleDarkMode(event.target.checked)} />
+        </label>
       </section>
 
       <section className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
@@ -2945,6 +2995,51 @@ function SettingsView({
           {loginError ? <div className="rounded-lg bg-red-50 px-3 py-2 text-xs text-red-700">{loginError}</div> : null}
         </div>
       </section>
+
+      {inviteModalOpen ? (
+        <div className="fixed inset-0 z-[190] flex items-center justify-center bg-black/45 p-4">
+          <button type="button" className="absolute inset-0 cursor-default" onClick={() => setInviteModalOpen(false)} aria-label="招待送信を閉じる" />
+          <div className="relative w-full max-w-sm rounded-2xl border border-gray-200 bg-white p-5 shadow-2xl">
+            <div className="mb-4 flex items-center justify-between gap-3">
+              <h3 className="flex items-center gap-2 text-lg font-bold text-gray-800"><UserPlus size={19} className="text-gray-500" />招待を送る</h3>
+              <button type="button" onClick={() => setInviteModalOpen(false)} className="rounded-full p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-700"><X size={18} /></button>
+            </div>
+            {isGuest ? (
+              <div className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-3 text-sm leading-6 text-gray-500">
+                招待を送るにはGoogleログインが必要です。
+              </div>
+            ) : ownedBoards.length === 0 ? (
+              <div className="rounded-lg border border-dashed border-gray-200 bg-gray-50 px-3 py-5 text-center text-sm text-gray-400">
+                招待できる自分のボードがありません。
+              </div>
+            ) : (
+              <form
+                onSubmit={(event) => {
+                  event.preventDefault();
+                  const board = ownedBoards.find((item) => item.id === inviteBoardId);
+                  if (!board || !inviteEmail.trim()) return;
+                  onSendInvite(board, inviteEmail.trim());
+                  setInviteEmail('');
+                  setInviteModalOpen(false);
+                }}
+                className="space-y-3"
+              >
+                <label className="block">
+                  <span className="mb-1 ml-1 block text-[10px] font-bold text-gray-500">招待するボード</span>
+                  <SelectSheet label="招待するボード" value={inviteBoardId} options={ownedBoards.map((board) => ({ value: board.id, label: board.title }))} onChange={setInviteBoardId} size="md" />
+                </label>
+                <label className="block">
+                  <span className="mb-1 ml-1 block text-[10px] font-bold text-gray-500">Googleメール</span>
+                  <input value={inviteEmail} onChange={(event) => setInviteEmail(event.target.value)} placeholder="example@gmail.com" className="h-[42px] w-full rounded-lg border border-gray-300 px-3 text-sm outline-none focus:border-gray-500" />
+                </label>
+                <button className="flex h-11 w-full items-center justify-center gap-2 rounded-lg bg-gray-800 text-sm font-bold text-white hover:bg-gray-700 disabled:opacity-40" disabled={!inviteBoardId || !inviteEmail.trim()}>
+                  <UserPlus size={16} />招待を送信
+                </button>
+              </form>
+            )}
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }
@@ -3508,13 +3603,16 @@ export default function App() {
             {tab === 'settings' ? (
               <SettingsView
                 user={currentUser}
-                isOwner={isOwner}
+                boards={boards}
                 isGuest={isGuestMode}
                 invites={invites}
                 onAcceptInvite={(invite) => user && respondInvite(invite, user, true)}
                 onDeclineInvite={(invite) => user && respondInvite(invite, user, false)}
+                onSendInvite={(board, email) => user && sendInvite(board, email, user)}
                 onFeedback={(message) => (isGuestMode ? alert('未ログインモードではご意見箱の送信はできません。内容は端末内には保存されません。') : user && submitFeedback(user, message))}
                 onShowGuide={() => setGuideOpen(true)}
+                darkMode={!!settings.darkMode}
+                onToggleDarkMode={(enabled) => currentBoard && (isGuestMode ? updateLocalSettings(currentBoard.id, { darkMode: enabled }) : updateSettings(currentBoard.id, { darkMode: enabled }))}
               />
             ) : null}
           </>
