@@ -1677,7 +1677,9 @@ function CalendarView({ tasks, settings, onOpenTask, onCreateTaskForDate }: {
   const [viewMode, setViewMode] = useState<'month' | 'week' | 'list'>('month');
   const [selectedDate, setSelectedDate] = useState(today);
   const [focusedCalendarTaskId, setFocusedCalendarTaskId] = useState<string | null>(null);
+  const [swipeFeedback, setSwipeFeedback] = useState('');
   const swipeStartRef = useRef<{ x: number; y: number } | null>(null);
+  const swipeFeedbackTimerRef = useRef<number | null>(null);
   const dueTasks = tasks.filter((task) => !task.deletedAt && !task.archivedAt && task.dueDate).sort((a, b) => a.dueDate.localeCompare(b.dueDate));
   const noDueTasks = tasks.filter((task) => !task.deletedAt && !task.archivedAt && !task.dueDate);
   const grouped = dueTasks.reduce<Record<string, Task[]>>((acc, task) => {
@@ -1718,15 +1720,27 @@ function CalendarView({ tasks, settings, onOpenTask, onCreateTaskForDate }: {
     date.setDate(weekStart.getDate() + index);
     return date;
   });
-  const moveWeek = (amount: number) => {
+  useEffect(() => () => {
+    if (swipeFeedbackTimerRef.current) window.clearTimeout(swipeFeedbackTimerRef.current);
+  }, []);
+
+  const showSwipeFeedback = (message: string) => {
+    setSwipeFeedback(message);
+    if (swipeFeedbackTimerRef.current) window.clearTimeout(swipeFeedbackTimerRef.current);
+    swipeFeedbackTimerRef.current = window.setTimeout(() => setSwipeFeedback(''), 900);
+  };
+
+  const moveWeek = (amount: number, source: 'button' | 'swipe' = 'button') => {
     const next = new Date(`${selectedDate}T00:00:00`);
     next.setDate(next.getDate() + amount * 7);
     setSelectedDate(dateKey(next));
     setVisibleMonth(new Date(next.getFullYear(), next.getMonth(), 1));
+    if (source === 'swipe') showSwipeFeedback(amount > 0 ? '次の週へ移動しました' : '前の週へ移動しました');
   };
 
-  const moveMonth = (amount: number) => {
+  const moveMonth = (amount: number, source: 'button' | 'swipe' = 'button') => {
     setVisibleMonth((current) => new Date(current.getFullYear(), current.getMonth() + amount, 1));
+    if (source === 'swipe') showSwipeFeedback(amount > 0 ? '次の月へ移動しました' : '前の月へ移動しました');
   };
 
   const jumpToThisMonth = () => {
@@ -1755,8 +1769,8 @@ function CalendarView({ tasks, settings, onOpenTask, onCreateTaskForDate }: {
     const dx = event.clientX - start.x;
     const dy = event.clientY - start.y;
     if (Math.abs(dx) < 70 || Math.abs(dx) < Math.abs(dy) * 1.4) return;
-    if (viewMode === 'month') moveMonth(dx > 0 ? -1 : 1);
-    if (viewMode === 'week') moveWeek(dx > 0 ? -1 : 1);
+    if (viewMode === 'month') moveMonth(dx > 0 ? -1 : 1, 'swipe');
+    if (viewMode === 'week') moveWeek(dx > 0 ? -1 : 1, 'swipe');
   };
 
   const startTouchSwipe = (event: TouchEvent<HTMLDivElement>) => {
@@ -1778,21 +1792,41 @@ function CalendarView({ tasks, settings, onOpenTask, onCreateTaskForDate }: {
     if (Math.abs(dx) < 54 || Math.abs(dx) < Math.abs(dy) * 1.25) return;
     event.preventDefault();
     event.stopPropagation();
-    if (viewMode === 'month') moveMonth(dx > 0 ? -1 : 1);
-    if (viewMode === 'week') moveWeek(dx > 0 ? -1 : 1);
+    if (viewMode === 'month') moveMonth(dx > 0 ? -1 : 1, 'swipe');
+    if (viewMode === 'week') moveWeek(dx > 0 ? -1 : 1, 'swipe');
   };
 
   const focusMonthTask = (task: Task) => {
+    const taskDate = new Date(`${task.dueDate}T00:00:00`);
+    setVisibleMonth(new Date(taskDate.getFullYear(), taskDate.getMonth(), 1));
     setSelectedDate(task.dueDate);
     setFocusedCalendarTaskId(task.id);
     window.setTimeout(() => {
       document.getElementById(`calendar-task-${task.id}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    }, 80);
+    }, 120);
+  };
+
+  const handleMonthDateClick = (key: string, hasTasks: boolean) => {
+    setSelectedDate(key);
+    const targetDate = new Date(`${key}T00:00:00`);
+    setVisibleMonth(new Date(targetDate.getFullYear(), targetDate.getMonth(), 1));
+    if (hasTasks) {
+      window.setTimeout(() => {
+        document.getElementById(`calendar-date-section-${key}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }, 120);
+      return;
+    }
+    onCreateTaskForDate(key);
   };
 
   return (
     <div className="space-y-4">
-      <section className="touch-pan-y overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm" onPointerDown={startSwipe} onPointerUp={endSwipe} onPointerCancel={() => { swipeStartRef.current = null; }} onTouchStart={startTouchSwipe} onTouchEnd={endTouchSwipe} onTouchCancel={() => { swipeStartRef.current = null; }}>
+      <section className="relative touch-pan-y overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm" onPointerDown={startSwipe} onPointerUp={endSwipe} onPointerCancel={() => { swipeStartRef.current = null; }} onTouchStart={startTouchSwipe} onTouchEnd={endTouchSwipe} onTouchCancel={() => { swipeStartRef.current = null; }}>
+        {swipeFeedback ? (
+          <div className="pointer-events-none absolute left-1/2 top-16 z-20 -translate-x-1/2 rounded-full bg-gray-800/90 px-3 py-1.5 text-xs font-bold text-white shadow-lg">
+            {swipeFeedback}
+          </div>
+        ) : null}
         <div className="border-b border-gray-200 bg-gray-50 px-3 py-3 sm:px-4">
           <div className="mb-3 grid grid-cols-3 rounded-lg bg-gray-200 p-1">
             {[
@@ -1837,9 +1871,10 @@ function CalendarView({ tasks, settings, onOpenTask, onCreateTaskForDate }: {
                 const key = dateKey(date);
                 const items = grouped[key] || [];
                 const inMonth = date.getMonth() === month;
+                const hasTasks = items.length > 0;
                 return (
                   <div key={key} onClick={() => setSelectedDate(key)} className={`min-h-[92px] bg-white p-1.5 text-left sm:min-h-[124px] sm:p-2 ${inMonth ? '' : 'bg-gray-50 text-gray-300'} ${key === selectedDate ? 'ring-2 ring-inset ring-gray-700' : ''}`}>
-                    <button type="button" onClick={(event) => { event.stopPropagation(); setSelectedDate(key); onCreateTaskForDate(key); }} className={`mb-1 flex h-6 w-6 items-center justify-center rounded-full text-xs font-bold ${key === todayKey ? 'bg-gray-800 text-white' : inMonth ? 'text-gray-700 hover:bg-gray-100' : 'text-gray-300 hover:bg-gray-100'}`} title={`${dateLabel(key)}のタスクを作成`}>
+                    <button type="button" onClick={(event) => { event.stopPropagation(); handleMonthDateClick(key, hasTasks); }} className={`mb-1 flex h-6 w-6 items-center justify-center rounded-full text-xs font-bold ${key === todayKey ? 'bg-gray-800 text-white' : hasTasks ? 'text-gray-700 ring-1 ring-gray-300 hover:bg-gray-100' : inMonth ? 'text-gray-700 hover:bg-gray-100' : 'text-gray-300 hover:bg-gray-100'}`} title={hasTasks ? `${dateLabel(key)}のタスク一覧へ` : `${dateLabel(key)}のタスクを作成`}>
                       {date.getDate()}
                     </button>
                     <div className="space-y-1">
@@ -1916,7 +1951,7 @@ function CalendarView({ tasks, settings, onOpenTask, onCreateTaskForDate }: {
         {Object.entries(grouped)
           .filter(([date]) => new Date(`${date}T00:00:00`).getMonth() === month && new Date(`${date}T00:00:00`).getFullYear() === year)
           .map(([date, items]) => (
-            <section key={date} className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
+            <section id={`calendar-date-section-${date}`} key={date} className={`rounded-xl border bg-white p-4 shadow-sm ${selectedDate === date ? 'border-gray-500 ring-2 ring-gray-100' : 'border-gray-200'}`}>
               <h3 className="mb-3 font-bold text-gray-800">{dateLabel(date)}</h3>
               <div className="space-y-2">
                 {items.map((task) => (
@@ -2109,6 +2144,7 @@ function BoardSettingsModal({
   const [restoreFileName, setRestoreFileName] = useState('');
   const [restoreError, setRestoreError] = useState('');
   const isAggregate = board.kind === 'aggregate';
+  const [showReorderHint, setShowReorderHint] = useState(() => localStorage.getItem('simple-task-board-reorder-hint-dismissed') !== '1');
 
   useEffect(() => {
     setBoardTitle(board.title);
@@ -2149,6 +2185,30 @@ function BoardSettingsModal({
   const restorePreview = backupPreview(restoreData);
   const exportData: BackupData = { type: 'wedding-task-board-backup', version: 1, board, settings, tasks, exportedAt: Date.now() };
   const lockedStatusIds = new Set(['todo', 'in-progress', 'done']);
+  const participantCount = board.memberEmails.length;
+  const roleLabel = isGuest ? '未ログイン' : isOwner ? 'オーナー' : '参加者';
+  const shareStateLabel = isGuest ? '未ログイン' : isOwner ? (participantCount > 0 || board.visibility === 'shared' ? '共有中' : '自分だけ') : '参加中';
+
+  const dismissReorderHint = () => {
+    localStorage.setItem('simple-task-board-reorder-hint-dismissed', '1');
+    setShowReorderHint(false);
+  };
+
+  const sendTestNotification = async () => {
+    if (!('Notification' in window)) {
+      alert('このブラウザは通知に対応していません。');
+      return;
+    }
+    const permission = Notification.permission === 'granted' ? 'granted' : await Notification.requestPermission();
+    if (permission !== 'granted') {
+      alert('ブラウザ通知が許可されていません。ブラウザ設定から通知を許可してください。');
+      return;
+    }
+    onUpdateSettings({ browserNotificationsEnabled: true });
+    new Notification('Simple Task Board', {
+      body: '通知テストです。期日が近いタスクもこのように通知されます。',
+    });
+  };
 
   const downloadBackup = () => {
     const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
@@ -2397,8 +2457,25 @@ function BoardSettingsModal({
                     共有したい場合はGoogleログインに切り替えてください。
                   </div>
                 ) : null}
-                <div className="mb-3 text-sm text-gray-600">オーナー: {isOwner ? 'あなた' : board.ownerId}</div>
+                <div className="mb-3 grid grid-cols-3 gap-1.5 rounded-lg border border-gray-200 bg-gray-50 p-2 text-center">
+                  <div className="rounded-md bg-white px-2 py-2">
+                    <div className="text-[10px] font-bold text-gray-400">共有状態</div>
+                    <div className="mt-0.5 text-xs font-bold text-gray-700">{shareStateLabel}</div>
+                  </div>
+                  <div className="rounded-md bg-white px-2 py-2">
+                    <div className="text-[10px] font-bold text-gray-400">あなたの役割</div>
+                    <div className="mt-0.5 text-xs font-bold text-gray-700">{roleLabel}</div>
+                  </div>
+                  <div className="rounded-md bg-white px-2 py-2">
+                    <div className="text-[10px] font-bold text-gray-400">参加者</div>
+                    <div className="mt-0.5 text-xs font-bold text-gray-700">{participantCount}人</div>
+                  </div>
+                </div>
                 <div className="mb-3 space-y-2">
+                  <div className="flex items-center justify-between gap-2 rounded-lg bg-gray-50 px-3 py-2">
+                    <span className="min-w-0 truncate text-xs font-semibold text-gray-600">{isOwner ? 'あなた' : 'オーナー'}</span>
+                    <span className="rounded-full border border-gray-200 bg-white px-2 py-0.5 text-[10px] font-bold text-gray-500">オーナー</span>
+                  </div>
                   {board.memberEmails.map((email, index) => (
                     <div key={email} className="flex items-center justify-between gap-2 rounded-lg bg-gray-50 px-3 py-2">
                       <span className="min-w-0 truncate text-xs font-semibold text-gray-600">{email}</span>
@@ -2407,7 +2484,7 @@ function BoardSettingsModal({
                       ) : null}
                     </div>
                   ))}
-                  {board.memberEmails.length === 0 ? <span className="text-sm text-gray-400">まだ共有されていません</span> : null}
+                  {board.memberEmails.length === 0 ? <span className="block rounded-lg border border-dashed border-gray-200 bg-gray-50 px-3 py-3 text-center text-xs leading-5 text-gray-400">参加者はいません。<br />自分だけで使っています。</span> : null}
                 </div>
                 {isOwner && !isGuest ? (
                   <form
@@ -2445,18 +2522,28 @@ function BoardSettingsModal({
                     <label className={`flex items-center justify-center gap-1 rounded-md bg-white px-2 py-1 ${settings.notificationsEnabled === false ? 'opacity-40' : ''}`}><input type="checkbox" checked={settings.notifyToday !== false} disabled={!isOwner || settings.notificationsEnabled === false} onChange={(event) => onUpdateSettings({ notifyToday: event.target.checked })} />今日</label>
                     <label className={`flex items-center justify-center gap-1 rounded-md bg-white px-2 py-1 ${settings.notificationsEnabled === false ? 'opacity-40' : ''}`}><input type="checkbox" checked={settings.notifyTomorrow !== false} disabled={!isOwner || settings.notificationsEnabled === false} onChange={(event) => onUpdateSettings({ notifyTomorrow: event.target.checked })} />明日</label>
                   </div>
-                  <button
-                    type="button"
-                    disabled={!isOwner || settings.notificationsEnabled === false || !('Notification' in window)}
-                    onClick={async () => {
-                      if (!('Notification' in window)) return;
-                      const permission = Notification.permission === 'granted' ? 'granted' : await Notification.requestPermission();
-                      if (permission === 'granted') onUpdateSettings({ browserNotificationsEnabled: true });
-                    }}
-                    className="mt-2 flex h-8 w-full items-center justify-center gap-1.5 rounded-md border border-gray-300 bg-white text-xs font-bold text-gray-600 shadow-sm hover:bg-gray-50 disabled:opacity-40"
-                  >
-                    <Bell size={14} />ブラウザ通知を許可
-                  </button>
+                  <div className="mt-2 grid grid-cols-2 gap-2">
+                    <button
+                      type="button"
+                      disabled={!isOwner || settings.notificationsEnabled === false || !('Notification' in window)}
+                      onClick={async () => {
+                        if (!('Notification' in window)) return;
+                        const permission = Notification.permission === 'granted' ? 'granted' : await Notification.requestPermission();
+                        if (permission === 'granted') onUpdateSettings({ browserNotificationsEnabled: true });
+                      }}
+                      className="flex h-8 items-center justify-center gap-1.5 rounded-md border border-gray-300 bg-white text-xs font-bold text-gray-600 shadow-sm hover:bg-gray-50 disabled:opacity-40"
+                    >
+                      <Bell size={14} />通知を許可
+                    </button>
+                    <button
+                      type="button"
+                      disabled={!isOwner || settings.notificationsEnabled === false || !('Notification' in window)}
+                      onClick={sendTestNotification}
+                      className="flex h-8 items-center justify-center gap-1.5 rounded-md border border-gray-300 bg-white text-xs font-bold text-gray-600 shadow-sm hover:bg-gray-50 disabled:opacity-40"
+                    >
+                      <Bell size={14} />通知テスト
+                    </button>
+                  </div>
                 </div>
               </section>
 
@@ -2491,6 +2578,13 @@ function BoardSettingsModal({
 
               <section className="border-t border-gray-200 pt-4">
                 <h3 className="mb-2 text-sm font-bold text-gray-700">担当者の管理</h3>
+                {showReorderHint ? (
+                  <div className="mb-2 flex items-start gap-2 rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-xs leading-5 text-gray-500">
+                    <GripVertical size={15} className="mt-0.5 shrink-0 text-gray-400" />
+                    <span className="min-w-0 flex-1">担当者とステータスは、ドラッグまたは長押しで並び替えできます。</span>
+                    <button type="button" onClick={dismissReorderHint} className="shrink-0 rounded-md p-1 text-gray-400 hover:bg-white hover:text-gray-600" aria-label="並び替えヒントを閉じる"><X size={14} /></button>
+                  </div>
+                ) : null}
                 <div className="space-y-2">
                   {settings.assignees.map((assignee) => (
                     <div
@@ -3540,6 +3634,11 @@ export default function App() {
               <span className="inline-flex shrink-0 rounded-full border border-gray-200 bg-white px-2 py-1 text-[10px] font-bold text-gray-500">
                 {boardStatusLabel(currentBoard, currentUser)}
               </span>
+              {currentBoard && currentUser && !isAggregateBoard && (currentBoard.ownerId !== currentUser.uid || currentBoard.memberEmails.length > 0 || currentBoard.visibility === 'shared') ? (
+                <span className="hidden shrink-0 rounded-full border border-gray-200 bg-white px-2 py-1 text-[10px] font-bold text-gray-500 sm:inline-flex">
+                  {currentBoard.ownerId === currentUser.uid ? `オーナー ・ 参加者${currentBoard.memberEmails.length}人` : '参加者として利用中'}
+                </span>
+              ) : null}
               {invites.length ? <span className="inline-flex h-6 min-w-6 items-center justify-center rounded-full bg-gray-800 px-1.5 text-[10px] font-bold text-white"><Bell size={12} />{invites.length}</span> : null}
               {busy ? <Loader2 className="animate-spin text-gray-400" size={18} /> : null}
             </div>
