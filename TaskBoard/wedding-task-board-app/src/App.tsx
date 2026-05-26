@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type CSSProperties, type FormEvent, type PointerEvent } from 'react';
+import { useEffect, useRef, useState, type CSSProperties, type FormEvent, type PointerEvent, type TouchEvent } from 'react';
 import {
   Archive,
   Bell,
@@ -1744,7 +1744,7 @@ function CalendarView({ tasks, settings, onOpenTask, onCreateTaskForDate }: {
   const startSwipe = (event: PointerEvent<HTMLDivElement>) => {
     if (viewMode === 'list') return;
     if (event.pointerType !== 'touch' && event.pointerType !== 'pen') return;
-    if ((event.target as HTMLElement).closest('button,input,select,textarea,a')) return;
+    if ((event.target as HTMLElement).closest('input,select,textarea,a')) return;
     swipeStartRef.current = { x: event.clientX, y: event.clientY };
   };
 
@@ -1759,6 +1759,29 @@ function CalendarView({ tasks, settings, onOpenTask, onCreateTaskForDate }: {
     if (viewMode === 'week') moveWeek(dx > 0 ? -1 : 1);
   };
 
+  const startTouchSwipe = (event: TouchEvent<HTMLDivElement>) => {
+    if (viewMode === 'list') return;
+    if ((event.target as HTMLElement).closest('input,select,textarea,a')) return;
+    const touch = event.touches[0];
+    if (!touch) return;
+    swipeStartRef.current = { x: touch.clientX, y: touch.clientY };
+  };
+
+  const endTouchSwipe = (event: TouchEvent<HTMLDivElement>) => {
+    const start = swipeStartRef.current;
+    swipeStartRef.current = null;
+    if (!start || viewMode === 'list') return;
+    const touch = event.changedTouches[0];
+    if (!touch) return;
+    const dx = touch.clientX - start.x;
+    const dy = touch.clientY - start.y;
+    if (Math.abs(dx) < 54 || Math.abs(dx) < Math.abs(dy) * 1.25) return;
+    event.preventDefault();
+    event.stopPropagation();
+    if (viewMode === 'month') moveMonth(dx > 0 ? -1 : 1);
+    if (viewMode === 'week') moveWeek(dx > 0 ? -1 : 1);
+  };
+
   const focusMonthTask = (task: Task) => {
     setSelectedDate(task.dueDate);
     setFocusedCalendarTaskId(task.id);
@@ -1769,7 +1792,7 @@ function CalendarView({ tasks, settings, onOpenTask, onCreateTaskForDate }: {
 
   return (
     <div className="space-y-4">
-      <section className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm" onPointerDown={startSwipe} onPointerUp={endSwipe} onPointerCancel={() => { swipeStartRef.current = null; }}>
+      <section className="touch-pan-y overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm" onPointerDown={startSwipe} onPointerUp={endSwipe} onPointerCancel={() => { swipeStartRef.current = null; }} onTouchStart={startTouchSwipe} onTouchEnd={endTouchSwipe} onTouchCancel={() => { swipeStartRef.current = null; }}>
         <div className="border-b border-gray-200 bg-gray-50 px-3 py-3 sm:px-4">
           <div className="mb-3 grid grid-cols-3 rounded-lg bg-gray-200 p-1">
             {[
