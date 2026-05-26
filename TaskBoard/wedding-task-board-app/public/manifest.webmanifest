@@ -2,13 +2,14 @@
   "name": "Simple Task Board",
   "short_name": "Task Board",
   "description": "一人でも、友人や家族とでも使える共有タスクボード",
-  "start_url": "/",
+  "start_url": ".",
+  "scope": ".",
   "display": "standalone",
   "background_color": "#fafafa",
   "theme_color": "#111827",
   "icons": [
     {
-      "src": "/icon.svg",
+      "src": "icon.svg",
       "sizes": "any",
       "type": "image/svg+xml",
       "purpose": "any maskable"

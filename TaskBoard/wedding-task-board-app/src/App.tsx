@@ -279,28 +279,35 @@ function GoogleIcon() {
 
 function GuideModal({ onClose }: { onClose: () => void }) {
   const items = [
-    ['未ログイン/ログイン', '未ログインでも使えます。共有や端末間同期を使う場合はGoogleログインに切り替えます。'],
-    ['ボード一覧', '左上のメニューから、自分のボード、参加中ボード、まとめボードを切り替えます。'],
-    ['まとめボード', '複数ボードのタスクをまとめて見るためのビューです。追加や削除は元ボードで行います。'],
-    ['ボード設定', '右上の歯車から、今開いているボードの担当者、ステータス、通知、アーカイブ、ゴミ箱を管理します。'],
-    ['その他', '招待、ご意見箱、ガイド、アカウント操作は下部のその他にあります。'],
+    { title: '未ログイン/ログイン', body: '未ログインでも使えます。データはこのブラウザ内だけに保存されます。共有や端末間同期を使う場合は、その他からGoogleログインに切り替えます。', icon: Lock },
+    { title: '未ログインデータの引き継ぎ', body: '未ログインで作ったボードがある状態でGoogleログインすると、Googleへ引き継ぐか確認できます。今回は引き継がない場合も、ローカルデータはこのブラウザ内に残ります。', icon: Upload },
+    { title: 'ボード一覧', body: '左上のメニューから、自分のボード、参加中ボード、まとめボードを切り替えます。自分のボード欄から新しいボードを作成できます。', icon: Menu },
+    { title: 'まとめボード', body: '複数ボードのタスクをまとめて見るためのビューです。タスク追加・削除、担当者・ステータス・通知などは元のボード側で操作します。', icon: Layers },
+    { title: 'ボードタブ', body: 'ステータスごとにタスクを確認します。右下の＋で新規タスク追加へ移動でき、＋の上の丸ボタンでステータスをまとめて開閉できます。', icon: LayoutDashboard },
+    { title: 'タスクカード', body: 'タスク名、担当者、期日、優先度、ステータスはタスクカード上で変更できます。三点メニューからアーカイブ、繰り返し設定、ゴミ箱移動などを行います。', icon: ClipboardList },
+    { title: 'サブタスク/メモ', body: 'タスクにはメモとサブタスクを追加できます。サブタスクはチェックで完了にでき、進捗バーで何件終わったかを確認できます。', icon: CheckSquare },
+    { title: 'カレンダー/検索', body: 'カレンダーは月・週・一覧で期日付きタスクを確認できます。検索ではキーワード、担当者、期日、優先度などでタスクを絞り込めます。', icon: CalendarDays },
+    { title: 'ボード設定', body: '右上の歯車から、今開いているボード固有の設定を管理します。担当者、ステータス、通知、繰り返し、アーカイブ、ゴミ箱、バックアップ/復元があります。', icon: Settings },
+    { title: '繰り返しタスク', body: '新規タスク追加やタスクの三点メニューから繰り返し設定を作れます。アプリを開いた時や復帰した時に、未生成分のタスクを作成します。', icon: Repeat },
+    { title: 'アーカイブ/ゴミ箱', body: '完了済みや一時的に隠したいタスクはアーカイブできます。削除したタスクや設定はゴミ箱から復元または完全削除できます。', icon: Archive },
+    { title: 'その他', body: '招待、ご意見箱、ガイド、ダークモード、アカウント操作は下部のその他にあります。招待は受け取り確認と送信の両方をここから扱えます。', icon: MoreHorizontal },
   ];
   return (
     <div className="modal-backdrop fixed inset-0 z-[180] flex items-end bg-black/45 p-0 sm:items-center sm:justify-center sm:p-4">
-      <div className="modal-responsive-panel w-full rounded-t-2xl bg-white p-5 shadow-2xl sm:max-w-md sm:rounded-2xl">
-        <div className="mb-4 flex items-center justify-between gap-3">
+      <div className="modal-responsive-panel flex max-h-[88vh] w-full flex-col rounded-t-2xl bg-white p-5 shadow-2xl sm:max-w-md sm:rounded-2xl">
+        <div className="mb-4 flex shrink-0 items-center justify-between gap-3">
           <h2 className="flex items-center gap-2 text-lg font-bold text-gray-800"><BookOpen size={20} className="text-gray-500" />Simple Task Board ガイド</h2>
           <button type="button" onClick={onClose} className="rounded-full p-2 text-gray-400 hover:bg-gray-100 hover:text-gray-800"><X size={18} /></button>
         </div>
-        <div className="space-y-2">
-          {items.map(([title, body]) => (
+        <div className="custom-scrollbar min-h-0 flex-1 space-y-2 overflow-y-auto pr-1">
+          {items.map(({ title, body, icon: Icon }) => (
             <div key={title} className="rounded-xl border border-gray-200 bg-gray-50 px-3 py-2">
-              <div className="text-sm font-bold text-gray-700">{title}</div>
+              <div className="flex items-center gap-1.5 text-sm font-bold text-gray-700"><Icon size={16} className="text-gray-500" />{title}</div>
               <div className="mt-1 text-xs leading-5 text-gray-500">{body}</div>
             </div>
           ))}
         </div>
-        <button type="button" onClick={onClose} className="mt-4 h-11 w-full rounded-lg bg-gray-800 text-sm font-bold text-white hover:bg-gray-700">閉じる</button>
+        <button type="button" onClick={onClose} className="mt-4 h-11 w-full shrink-0 rounded-lg bg-gray-800 text-sm font-bold text-white hover:bg-gray-700">閉じる</button>
       </div>
     </div>
   );
@@ -3566,7 +3573,7 @@ export default function App() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [migrationPromptOpen, setMigrationPromptOpen] = useState(false);
   const [migrationSuccess, setMigrationSuccess] = useState(false);
-  const [guideOpen, setGuideOpen] = useState(() => localStorage.getItem('task-board-guide-seen-v1') !== '1');
+  const [guideOpen, setGuideOpen] = useState(false);
   const [notificationOpen, setNotificationOpen] = useState(false);
   const [notifiedTaskKeys, setNotifiedTaskKeys] = useState<Set<string>>(() => new Set(JSON.parse(localStorage.getItem('task-board-notified-v1') || '[]') as string[]));
   const [busy, setBusy] = useState(false);
@@ -3974,7 +3981,7 @@ export default function App() {
   };
 
   const closeGuide = () => {
-    localStorage.setItem('task-board-guide-seen-v1', '1');
+    localStorage.setItem('task-board-guide-seen-v2', '1');
     setGuideOpen(false);
   };
 
