@@ -286,8 +286,8 @@ function GuideModal({ onClose }: { onClose: () => void }) {
     ['その他', '招待、ご意見箱、ガイド、アカウント操作は下部のその他にあります。'],
   ];
   return (
-    <div className="fixed inset-0 z-[180] flex items-end bg-black/45 p-0 sm:items-center sm:justify-center sm:p-4">
-      <div className="w-full rounded-t-2xl bg-white p-5 shadow-2xl sm:max-w-md sm:rounded-2xl">
+    <div className="modal-backdrop fixed inset-0 z-[180] flex items-end bg-black/45 p-0 sm:items-center sm:justify-center sm:p-4">
+      <div className="modal-responsive-panel w-full rounded-t-2xl bg-white p-5 shadow-2xl sm:max-w-md sm:rounded-2xl">
         <div className="mb-4 flex items-center justify-between gap-3">
           <h2 className="flex items-center gap-2 text-lg font-bold text-gray-800"><BookOpen size={20} className="text-gray-500" />Simple Task Board ガイド</h2>
           <button type="button" onClick={onClose} className="rounded-full p-2 text-gray-400 hover:bg-gray-100 hover:text-gray-800"><X size={18} /></button>
@@ -661,7 +661,7 @@ function BoardSidebar({
               {aggregateHelpOpen ? (
                 <>
                   <button type="button" className="fixed inset-0 z-[135] cursor-default" onClick={() => setAggregateHelpOpen(false)} aria-label="まとめボードの説明を閉じる" />
-                  <div className="absolute left-0 top-6 z-[140] w-64 rounded-xl border border-gray-200 bg-white p-3 text-xs leading-5 text-gray-600 shadow-xl">
+                  <div className="popover-float absolute left-0 top-6 z-[140] w-64 rounded-xl border border-gray-200 bg-white p-3 text-xs leading-5 text-gray-600 shadow-xl">
                     <div className="mb-1 font-bold text-gray-700">まとめボードとは</div>
                     <p>複数ボードのタスクをまとめて見ることができます。</p>
                     <p className="mt-1">タスク追加・削除や各種設定は元のボードで行います。</p>
@@ -890,7 +890,7 @@ function TaskCard({
           ) : (
             <>
               <button className="fixed inset-0 z-[50] cursor-default" onClick={handleTitleSave} aria-label="タイトル編集を閉じる" />
-              <div className="absolute top-0 left-0 w-[calc(100%+16px)] -ml-2 -mt-2 bg-white p-3 rounded-xl shadow-[0_8px_30px_rgb(0,0,0,0.15)] border border-gray-200 flex flex-col gap-3 z-[60] animate-in zoom-in-95 duration-200">
+              <div className="popover-float absolute top-0 left-0 w-[calc(100%+16px)] -ml-2 -mt-2 bg-white p-3 rounded-xl shadow-[0_8px_30px_rgb(0,0,0,0.15)] border border-gray-200 flex flex-col gap-3 z-[60]">
                 <input autoFocus value={editedTitle} onChange={(event) => setEditedTitle(event.target.value)} onKeyDown={(event) => { if (event.key === 'Enter') handleTitleSave(); }} className="w-full text-base font-bold text-gray-800 bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:border-gray-400 focus:bg-white transition-colors" placeholder="タスクのタイトル" />
                 <div className="flex justify-end gap-1.5">
                   <button type="button" onClick={handleTitleSave} className="p-1.5 bg-gray-800 text-white rounded-md hover:bg-gray-700 shadow-sm"><Check size={16} strokeWidth={3} /></button>
@@ -912,9 +912,9 @@ function TaskCard({
       ) : null}
 
       {isActionMenuOpen ? (
-        <div className="fixed inset-0 z-[190] flex items-center justify-center bg-black/40 p-4">
+        <div className="modal-backdrop fixed inset-0 z-[190] flex items-center justify-center bg-black/40 p-4">
           <button type="button" className="absolute inset-0 cursor-default" onClick={() => setIsActionMenuOpen(false)} aria-label="タスクメニューを閉じる" />
-          <div className="custom-scrollbar relative max-h-[84vh] w-full max-w-sm overflow-y-auto rounded-2xl border border-gray-200 bg-white p-4 shadow-2xl">
+          <div className="modal-float custom-scrollbar relative max-h-[84vh] w-full max-w-sm overflow-y-auto rounded-2xl border border-gray-200 bg-white p-4 shadow-2xl">
             <div className="mb-3 flex items-start justify-between gap-3">
               <div className="min-w-0">
                 <div className="break-words text-base font-bold leading-snug text-gray-800">{task.title}</div>
@@ -994,9 +994,9 @@ function TaskCard({
               <Trash2 size={17} />ゴミ箱へ移動
             </button> : null}
             {recurrenceFromTaskOpen ? (
-              <div className="fixed inset-0 z-[210] flex items-center justify-center bg-black/45 p-4">
+              <div className="modal-backdrop fixed inset-0 z-[210] flex items-center justify-center bg-black/45 p-4">
                 <button type="button" className="absolute inset-0 cursor-default" onClick={() => setRecurrenceFromTaskOpen(false)} aria-label="繰り返し設定を閉じる" />
-                <div className="custom-scrollbar relative max-h-[84vh] w-full max-w-sm overflow-y-auto rounded-2xl border border-gray-200 bg-white p-4 shadow-2xl">
+                <div className="modal-float custom-scrollbar relative max-h-[84vh] w-full max-w-sm overflow-y-auto rounded-2xl border border-gray-200 bg-white p-4 shadow-2xl">
                   <div className="mb-3 flex items-center justify-between gap-3">
                     <h3 className="flex items-center gap-2 text-base font-bold text-gray-800"><Repeat size={18} className="text-gray-500" />繰り返しタスクにする</h3>
                     <button type="button" onClick={() => setRecurrenceFromTaskOpen(false)} className="rounded-full p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-700"><X size={17} /></button>
@@ -1070,8 +1070,8 @@ function TaskCard({
           </div>
           {isEditingPriority ? (
             <>
-              <button className="fixed inset-0 z-[190] cursor-default bg-black/40" onClick={() => setIsEditingPriority(false)} aria-label="優先度編集を閉じる" />
-              <div className="fixed left-1/2 top-1/2 z-[200] w-[min(calc(100vw-2rem),22rem)] -translate-x-1/2 -translate-y-1/2 rounded-2xl border border-gray-200 bg-white p-4 shadow-2xl">
+              <button className="modal-backdrop fixed inset-0 z-[190] cursor-default bg-black/40" onClick={() => setIsEditingPriority(false)} aria-label="優先度編集を閉じる" />
+              <div className="modal-center-float fixed left-1/2 top-1/2 z-[200] w-[min(calc(100vw-2rem),22rem)] -translate-x-1/2 -translate-y-1/2 rounded-2xl border border-gray-200 bg-white p-4 shadow-2xl">
                 <div className="mb-3 text-sm font-bold text-gray-700">優先度</div>
                 <div className="flex items-center gap-3">
                   <input type="range" min="0" max="100" value={tempPriority} onChange={(event) => setTempPriority(Number(event.target.value))} className="range flex-1 min-w-0" style={{ '--range-color': priorityColor(tempPriority), '--range-bg': `linear-gradient(to right, ${priorityColor(tempPriority)} ${tempPriority}%, #e5e7eb ${tempPriority}%)` } as CSSProperties} />
@@ -1095,7 +1095,7 @@ function TaskCard({
         ) : (
           <>
             <button className="fixed inset-0 z-[50] cursor-default" onClick={() => { setLocalMemo(task.memo || ''); setIsEditingMemo(false); }} aria-label="メモ編集を閉じる" />
-            <div className="absolute top-0 left-0 w-[calc(100%+16px)] -ml-2 -mt-2 bg-white p-3 rounded-xl shadow-[0_8px_30px_rgb(0,0,0,0.15)] border border-gray-200 flex flex-col gap-3 z-[60] animate-in zoom-in-95 duration-200">
+            <div className="popover-float absolute top-0 left-0 w-[calc(100%+16px)] -ml-2 -mt-2 bg-white p-3 rounded-xl shadow-[0_8px_30px_rgb(0,0,0,0.15)] border border-gray-200 flex flex-col gap-3 z-[60]">
               <textarea autoFocus value={localMemo} onChange={(event) => setLocalMemo(event.target.value)} placeholder="メモを追加..." className="w-full text-xs text-gray-600 bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 resize-none focus:outline-none focus:border-gray-400 focus:bg-white transition-colors overflow-hidden leading-relaxed" rows={3} style={{ minHeight: '64px' }} />
               <div className="flex justify-end gap-1.5">
                 <button type="button" onClick={() => { onUpdate(task.id, { memo: localMemo }); setIsEditingMemo(false); }} className="p-1.5 bg-gray-800 text-white rounded-md hover:bg-gray-700 shadow-sm"><Check size={16} strokeWidth={3} /></button>
@@ -1125,7 +1125,7 @@ function TaskCard({
             {editingSubtaskId === subtask.id ? (
               <>
                 <button className="fixed inset-0 z-[50] cursor-default" onClick={() => handleSubtaskSave(subtask.id, subtask.text)} aria-label="サブタスク編集を閉じる" />
-                <div className="absolute top-0 left-6 w-[calc(100%-24px)] bg-white p-2 rounded-xl shadow-[0_8px_30px_rgb(0,0,0,0.15)] border border-gray-200 flex flex-col gap-2 z-[60] animate-in zoom-in-95 duration-200 -mt-2 -ml-2">
+                <div className="popover-float absolute top-0 left-6 w-[calc(100%-24px)] bg-white p-2 rounded-xl shadow-[0_8px_30px_rgb(0,0,0,0.15)] border border-gray-200 flex flex-col gap-2 z-[60] -mt-2 -ml-2">
                   <input autoFocus value={editedSubtaskText} onChange={(event) => setEditedSubtaskText(event.target.value)} onKeyDown={(event) => { if (event.key === 'Enter') handleSubtaskSave(subtask.id, subtask.text); }} className="w-full text-sm text-gray-700 bg-gray-50 border border-gray-200 rounded-lg px-2 py-1.5 focus:outline-none focus:border-gray-400 focus:bg-white transition-colors" placeholder="サブタスク内容" />
                   <div className="flex justify-end gap-1.5">
                     <button type="button" onClick={() => handleSubtaskSave(subtask.id, subtask.text)} className="p-1 bg-gray-800 text-white rounded hover:bg-gray-700 shadow-sm"><Check size={14} strokeWidth={3} /></button>
@@ -1170,8 +1170,8 @@ function SelectSheet({ label, value, options, onChange, size = 'sm', disabled = 
       </button>
       {open ? (
         <>
-          <button type="button" className="fixed inset-0 z-[190] cursor-default bg-black/40" onClick={() => setOpen(false)} aria-label="閉じる" />
-          <div className="fixed left-1/2 top-1/2 z-[200] w-[min(calc(100vw-2rem),22rem)] max-h-[80vh] -translate-x-1/2 -translate-y-1/2 overflow-hidden rounded-2xl border border-gray-200 bg-white p-4 shadow-2xl">
+          <button type="button" className="modal-backdrop fixed inset-0 z-[190] cursor-default bg-black/40" onClick={() => setOpen(false)} aria-label="閉じる" />
+          <div className="modal-center-float fixed left-1/2 top-1/2 z-[200] w-[min(calc(100vw-2rem),22rem)] max-h-[80vh] -translate-x-1/2 -translate-y-1/2 overflow-hidden rounded-2xl border border-gray-200 bg-white p-4 shadow-2xl">
             <div className="mb-2 px-2 text-xs font-bold text-gray-500">{label}</div>
             <div className="custom-scrollbar max-h-[64vh] overflow-y-auto">
               {options.map((option) => (
@@ -1210,8 +1210,8 @@ function SortSheetTrigger({ value, onChange }: { value: string; onChange: (value
       </button>
       {open ? (
         <>
-          <button type="button" className="fixed inset-0 z-[190] cursor-default bg-black/40" onClick={() => setOpen(false)} aria-label="閉じる" />
-          <div className="fixed left-1/2 top-1/2 z-[200] w-[min(calc(100vw-2rem),22rem)] max-h-[80vh] -translate-x-1/2 -translate-y-1/2 overflow-hidden rounded-2xl border border-gray-200 bg-white p-4 shadow-2xl">
+          <button type="button" className="modal-backdrop fixed inset-0 z-[190] cursor-default bg-black/40" onClick={() => setOpen(false)} aria-label="閉じる" />
+          <div className="modal-center-float fixed left-1/2 top-1/2 z-[200] w-[min(calc(100vw-2rem),22rem)] max-h-[80vh] -translate-x-1/2 -translate-y-1/2 overflow-hidden rounded-2xl border border-gray-200 bg-white p-4 shadow-2xl">
             <div className="mb-2 px-2 text-xs font-bold text-gray-500">並び替え</div>
             <div className="custom-scrollbar max-h-[64vh] overflow-y-auto">
               {sortOptions.map((option) => (
@@ -1270,8 +1270,8 @@ function PriorityFilterButton({ label, value, onChange }: { label: string; value
       </button>
       {open ? (
         <>
-          <button className="fixed inset-0 z-[190] cursor-default bg-black/40" onClick={() => setOpen(false)} aria-label={`${label}編集を閉じる`} />
-          <div className="fixed left-1/2 top-1/2 z-[200] w-[min(calc(100vw-2rem),22rem)] -translate-x-1/2 -translate-y-1/2 rounded-2xl border border-gray-200 bg-white p-4 shadow-2xl">
+          <button className="modal-backdrop fixed inset-0 z-[190] cursor-default bg-black/40" onClick={() => setOpen(false)} aria-label={`${label}編集を閉じる`} />
+          <div className="modal-center-float fixed left-1/2 top-1/2 z-[200] w-[min(calc(100vw-2rem),22rem)] -translate-x-1/2 -translate-y-1/2 rounded-2xl border border-gray-200 bg-white p-4 shadow-2xl">
             <div className="mb-3 text-sm font-bold text-gray-700">{label}</div>
             <div className="flex items-center gap-3">
               <input type="range" min="0" max="100" value={tempPriority} onChange={(event) => setTempPriority(Number(event.target.value))} className="range min-w-0 flex-1" style={{ '--range-color': priorityColor(tempPriority), '--range-bg': `linear-gradient(to right, ${priorityColor(tempPriority)} ${tempPriority}%, #e5e7eb ${tempPriority}%)` } as CSSProperties} />
@@ -1454,8 +1454,8 @@ function AddTaskForm({ settings, onAdd, onCreateRecurrence, prefillDueDate, focu
         </div>
       </div>
       {recurrenceOpen ? (
-        <div className="fixed inset-0 z-[190] flex items-center justify-center bg-black/45 p-4">
-          <div className="custom-scrollbar max-h-[84vh] w-full max-w-md overflow-y-auto rounded-2xl border border-gray-200 bg-white p-5 shadow-2xl">
+        <div className="modal-backdrop fixed inset-0 z-[190] flex items-center justify-center bg-black/45 p-4">
+          <div className="modal-float custom-scrollbar max-h-[84vh] w-full max-w-md overflow-y-auto rounded-2xl border border-gray-200 bg-white p-5 shadow-2xl">
             <div className="mb-4 flex items-center justify-between gap-3">
               <h3 className="flex items-center gap-2 text-lg font-bold text-gray-800"><Repeat size={20} className="text-gray-500" />繰り返し設定</h3>
               <button type="button" onClick={() => setRecurrenceOpen(false)} className="rounded-full p-2 text-gray-400 hover:bg-gray-100 hover:text-gray-800"><X size={18} /></button>
@@ -2449,8 +2449,8 @@ function BoardSettingsModal({
   };
 
   return (
-    <div className="fixed inset-0 z-[150] flex items-center justify-center bg-black/50 p-4">
-      <div className="flex max-h-[90vh] w-full max-w-xl flex-col rounded-2xl bg-white p-5 shadow-2xl sm:p-6">
+    <div className="modal-backdrop fixed inset-0 z-[150] flex items-center justify-center bg-black/50 p-4">
+      <div className="modal-float flex max-h-[90vh] w-full max-w-xl flex-col rounded-2xl bg-white p-5 shadow-2xl sm:p-6">
         <div className="mb-4 flex items-center justify-between gap-3">
           <h2 className="flex items-center gap-2 text-lg font-bold text-gray-900"><Settings size={20} className="text-gray-500" />ボード設定</h2>
           <button type="button" onClick={onClose} className="rounded-full p-2 text-gray-400 hover:bg-gray-100 hover:text-gray-800"><X size={18} /></button>
@@ -2665,7 +2665,7 @@ function BoardSettingsModal({
                       {editingAssigneeId === assignee.id ? (
                         <>
                           <button type="button" className="fixed inset-0 z-[160] cursor-default" onClick={() => setEditingAssigneeId(null)} aria-label="担当者名編集を閉じる" />
-                          <div className="absolute left-8 right-2 top-1 z-[170] rounded-xl border border-gray-200 bg-white p-2 shadow-2xl">
+                          <div className="popover-float absolute left-8 right-2 top-1 z-[170] rounded-xl border border-gray-200 bg-white p-2 shadow-2xl">
                             <input autoFocus value={draftName} onChange={(event) => setDraftName(event.target.value)} onKeyDown={(event) => { if (event.key === 'Enter') saveNameEditor(); if (event.key === 'Escape') setEditingAssigneeId(null); }} className="w-full rounded-lg border border-gray-300 px-2 py-1.5 text-sm outline-none focus:border-gray-500" />
                             <div className="mt-2 flex justify-end gap-1.5">
                               <button type="button" onClick={saveNameEditor} className="rounded-md bg-gray-800 px-2 py-1 text-white"><Check size={14} /></button>
@@ -2723,7 +2723,7 @@ function BoardSettingsModal({
                       {editingStatusId === status.id ? (
                         <>
                           <button type="button" className="fixed inset-0 z-[160] cursor-default" onClick={() => setEditingStatusId(null)} aria-label="ステータス名編集を閉じる" />
-                          <div className="absolute left-8 right-2 top-1 z-[170] rounded-xl border border-gray-200 bg-white p-2 shadow-2xl">
+                          <div className="popover-float absolute left-8 right-2 top-1 z-[170] rounded-xl border border-gray-200 bg-white p-2 shadow-2xl">
                             <input autoFocus value={draftName} onChange={(event) => setDraftName(event.target.value)} onKeyDown={(event) => { if (event.key === 'Enter') saveNameEditor(); if (event.key === 'Escape') setEditingStatusId(null); }} className="w-full rounded-lg border border-gray-300 px-2 py-1.5 text-sm outline-none focus:border-gray-500" />
                             <div className="mt-2 flex justify-end gap-1.5">
                               <button type="button" onClick={saveNameEditor} className="rounded-md bg-gray-800 px-2 py-1 text-white"><Check size={14} /></button>
@@ -2913,8 +2913,8 @@ function BoardSettingsModal({
         </div>
       </div>
       {confirmEmptyTrash ? (
-        <div className="fixed inset-0 z-[170] flex items-center justify-center bg-black/60 p-4">
-          <div className="w-full max-w-sm rounded-2xl border border-red-100 bg-white p-5 shadow-2xl">
+        <div className="modal-backdrop fixed inset-0 z-[170] flex items-center justify-center bg-black/60 p-4">
+          <div className="modal-float w-full max-w-sm rounded-2xl border border-red-100 bg-white p-5 shadow-2xl">
             <div className="mb-3 flex items-center gap-2 text-red-600">
               <Trash2 size={22} />
               <h3 className="text-lg font-bold">ゴミ箱を空にしますか？</h3>
@@ -2941,8 +2941,8 @@ function BoardSettingsModal({
         </div>
       ) : null}
       {restoreOpen && !isAggregate ? (
-        <div className="fixed inset-0 z-[170] flex items-end bg-black/45 p-0 sm:items-center sm:justify-center sm:p-4">
-          <div className="w-full rounded-t-2xl bg-white p-5 shadow-2xl sm:max-w-md sm:rounded-2xl">
+        <div className="modal-backdrop fixed inset-0 z-[170] flex items-end bg-black/45 p-0 sm:items-center sm:justify-center sm:p-4">
+          <div className="modal-responsive-panel w-full rounded-t-2xl bg-white p-5 shadow-2xl sm:max-w-md sm:rounded-2xl">
             <div className="mb-4 flex items-center justify-between gap-3">
               <h3 className="flex items-center gap-2 text-lg font-bold text-gray-800"><Upload size={20} className="text-gray-500" />データを復元</h3>
               <button type="button" onClick={() => setRestoreOpen(false)} className="rounded-full p-2 text-gray-400 hover:bg-gray-100 hover:text-gray-800"><X size={18} /></button>
@@ -2985,8 +2985,8 @@ function BoardSettingsModal({
         </div>
       ) : null}
       {confirmBoardDelete ? (
-        <div className="fixed inset-0 z-[170] flex items-center justify-center bg-black/60 p-4">
-          <div className="w-full max-w-sm rounded-2xl border border-red-100 bg-white p-5 shadow-2xl">
+        <div className="modal-backdrop fixed inset-0 z-[170] flex items-center justify-center bg-black/60 p-4">
+          <div className="modal-float w-full max-w-sm rounded-2xl border border-red-100 bg-white p-5 shadow-2xl">
             <div className="mb-3 flex items-center gap-2 text-red-600">
               <Trash2 size={22} />
               <h3 className="text-lg font-bold">ボードを削除しますか？</h3>
@@ -3164,9 +3164,9 @@ function SettingsView({
       </section>
 
       {inviteModalOpen ? (
-        <div className="fixed inset-0 z-[190] flex items-center justify-center bg-black/45 p-4">
+        <div className="modal-backdrop fixed inset-0 z-[190] flex items-center justify-center bg-black/45 p-4">
           <button type="button" className="absolute inset-0 cursor-default" onClick={() => setInviteModalOpen(false)} aria-label="招待送信を閉じる" />
-          <div className="relative w-full max-w-sm rounded-2xl border border-gray-200 bg-white p-5 shadow-2xl">
+          <div className="modal-float relative w-full max-w-sm rounded-2xl border border-gray-200 bg-white p-5 shadow-2xl">
             <div className="mb-4 flex items-center justify-between gap-3">
               <h3 className="flex items-center gap-2 text-lg font-bold text-gray-800"><UserPlus size={19} className="text-gray-500" />招待を送る</h3>
               <button type="button" onClick={() => setInviteModalOpen(false)} className="rounded-full p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-700"><X size={18} /></button>
@@ -3857,8 +3857,8 @@ export default function App() {
       {guideOpen ? <GuideModal onClose={closeGuide} /> : null}
 
       {migrationPromptOpen ? (
-        <div className="fixed inset-0 z-[170] flex items-center justify-center bg-black/50 p-4">
-          <div className="w-full max-w-sm rounded-2xl bg-white p-5 shadow-2xl">
+        <div className="modal-backdrop fixed inset-0 z-[170] flex items-center justify-center bg-black/50 p-4">
+          <div className="modal-float w-full max-w-sm rounded-2xl bg-white p-5 shadow-2xl">
             <h2 className="text-lg font-bold text-gray-800">未ログインデータを引き継ぎますか？</h2>
             <p className="mt-2 text-sm leading-6 text-gray-600">このブラウザ内に保存されているデータを、Googleアカウントへコピーできます。</p>
             <div className="mt-3 rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-xs leading-5 text-gray-600">
@@ -3877,7 +3877,7 @@ export default function App() {
       ) : null}
 
       {notificationOpen && dueNotificationTasks.length > 0 ? (
-        <div className="fixed inset-x-3 bottom-20 z-[120] mx-auto max-w-md rounded-2xl border border-gray-200 bg-white p-4 shadow-2xl md:bottom-6">
+        <div className="modal-sheet-up fixed inset-x-3 bottom-20 z-[120] mx-auto max-w-md rounded-2xl border border-gray-200 bg-white p-4 shadow-2xl md:bottom-6">
           <div className="flex items-start justify-between gap-3">
             <div>
               <h2 className="flex items-center gap-2 text-sm font-bold text-gray-800"><Bell size={16} />期限が近いタスク</h2>

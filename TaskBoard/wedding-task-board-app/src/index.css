@@ -118,6 +118,105 @@ textarea {
   animation: calendarSwipePrev 260ms ease-out;
 }
 
+@keyframes modalBackdropFade {
+  0% {
+    opacity: 0;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+
+@keyframes modalFloatIn {
+  0% {
+    opacity: 0;
+    transform: translateY(10px) scale(0.97);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes modalCenterFloatIn {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, calc(-50% + 10px)) scale(0.97);
+  }
+  100% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+  }
+}
+
+@keyframes modalSheetUp {
+  0% {
+    opacity: 0;
+    transform: translateY(18px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes popoverFloatIn {
+  0% {
+    opacity: 0;
+    transform: translateY(4px) scale(0.98);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.modal-backdrop {
+  animation: modalBackdropFade 160ms ease-out;
+}
+
+.modal-float {
+  animation: modalFloatIn 190ms ease-out;
+  transform-origin: center;
+}
+
+.modal-center-float {
+  animation: modalCenterFloatIn 190ms ease-out;
+  transform-origin: center;
+}
+
+.modal-sheet-up {
+  animation: modalSheetUp 220ms ease-out;
+}
+
+.modal-responsive-panel {
+  animation: modalSheetUp 220ms ease-out;
+}
+
+.popover-float {
+  animation: popoverFloatIn 160ms ease-out;
+  transform-origin: top center;
+}
+
+@media (min-width: 640px) {
+  .modal-responsive-panel {
+    animation: modalFloatIn 190ms ease-out;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .modal-backdrop,
+  .modal-float,
+  .modal-center-float,
+  .modal-sheet-up,
+  .modal-responsive-panel,
+  .popover-float,
+  .calendar-swipe-next,
+  .calendar-swipe-prev {
+    animation: none;
+  }
+}
+
 .app-dark {
   background: #111827;
   color: #e5e7eb;
